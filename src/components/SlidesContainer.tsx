@@ -1196,6 +1196,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                               </div>
                             </div>
                           </div>
+                        )}
                       </div>
                     )}
                   </div>
