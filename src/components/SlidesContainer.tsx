@@ -56,6 +56,7 @@ interface SlidesContainerProps {
   aspectRatio: AspectRatio;
   themeFont?: any;
   slideBorderStyle?: any;
+  isDarkMode?: boolean;
   onTabChange: (tab: 'preview' | 'code') => void;
   onSlideSelect: (slideId: string) => void;
   onSlideDelete: (slideId: string) => void;
@@ -73,6 +74,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
   aspectRatio,
   themeFont,
   slideBorderStyle,
+  isDarkMode = false,
   onTabChange,
   onSlideSelect,
   onSlideDelete,
@@ -161,7 +163,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
     return () => clearTimeout(timer);
   }, [tempSlide, hasUnsavedChanges, onSlideUpdate]);
 
-  // 요소 업데이트 함수
+  // 요소 업데이트 함수 - HTML 직접 업데이트 포함
   const updateElement = useCallback((elementId: string, updates: Partial<SlideElement>) => {
     if (!tempSlide) return;
 
@@ -169,12 +171,28 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
       el.id === elementId ? { ...el, ...updates } : el
     ) || [];
 
+    // HTML 콘텐츠 재생성
+    const updatedHtmlContent = generateSlideHTML(
+      tempSlide.title,
+      tempSlide.content,
+      theme,
+      aspectRatio,
+      tempSlide.order,
+      themeFont,
+      slideBorderStyle,
+      tempSlide.slideLayout || tempSlide.template || 'title-top-content-bottom',
+      tempSlide.backgroundImage,
+      tempSlide.backgroundBlur || 2,
+      tempSlide.themeOverlay || 0.3
+    );
+
     setTempSlide(prev => prev ? {
       ...prev,
       elements: updatedElements,
+      htmlContent: updatedHtmlContent,
     } : null);
     setHasUnsavedChanges(true);
-  }, [tempSlide]);
+  }, [tempSlide, theme, aspectRatio, themeFont, slideBorderStyle]);
 
   const addNewElement = (type: 'text' | 'image' = 'text') => {
     if (!tempSlide) return;
@@ -282,16 +300,32 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
             const imageUrl = e.target?.result as string;
             
             if (elementId) {
+              // 기존 요소 업데이트
               updateElement(elementId, { content: imageUrl });
             } else {
-              addNewElement('image');
-              setTimeout(() => {
-                const newElements = tempSlide?.elements || [];
-                const lastElement = newElements[newElements.length - 1];
-                if (lastElement) {
-                  updateElement(lastElement.id, { content: imageUrl });
-                }
-              }, 100);
+              // 새 이미지 요소 직접 생성
+              const newElement: SlideElement = {
+                id: `element-${Date.now()}`,
+                type: 'image',
+                content: imageUrl,
+                x: 100,
+                y: 100,
+                width: 150,
+                height: 100,
+                fontSize: 16,
+                fontFamily: 'Arial, sans-serif',
+                color: '#000000',
+                fontWeight: 'normal',
+                textAlign: 'left',
+                zIndex: (tempSlide?.elements?.length || 0) + 1,
+              };
+
+              setTempSlide(prev => prev ? {
+                ...prev,
+                elements: [...(prev.elements || []), newElement],
+              } : null);
+              setHasUnsavedChanges(true);
+              setSelectedElementId(newElement.id);
             }
           };
           reader.readAsDataURL(file);
@@ -474,14 +508,15 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
     const updatedSlide = {
       ...tempSlide,
       slideLayout: newTemplate,
+      template: newTemplate,
       htmlContent: generateSlideHTML(
         tempSlide.title,
         tempSlide.content,
         theme,
         aspectRatio,
         tempSlide.order,
-        undefined,
-        undefined,
+        themeFont,
+        slideBorderStyle,
         newTemplate,
         tempSlide.backgroundImage,
         tempSlide.backgroundBlur || 2,
@@ -640,7 +675,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-gray-800">
+        <h2 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
           {t.generatedSlides} ({slides.length})
         </h2>
         <button
@@ -685,7 +720,11 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                   activeTab={activeTab}
                   language={language}
                   onTabChange={onTabChange}
-                  onDelete={() => onSlideDelete(slide.id)}
+                  onDelete={() => {
+                    if (window.confirm('이 슬라이드를 삭제하시겠습니까?')) {
+                      onSlideDelete(slide.id);
+                    }
+                  }}
                   isActive={false}
                   onClick={() => onSlideSelect(slide.id)}
                   containerStyle={getSlideContainerStyle()}
@@ -693,11 +732,11 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
               ) : (
                 /* 선택된 슬라이드는 직접 편집 가능한 형태로 표시 */
                 tempSlide && (
-                  <div className="bg-white rounded-lg border-2 border-blue-500 p-4">
+                  <div className={`${isDarkMode ? 'bg-gray-800 border-blue-400' : 'bg-white border-blue-500'} rounded-lg border-2 p-4`}>
                     {/* 편집 컨트롤 바 */}
-                    <div className="flex items-center justify-between mb-4 p-3 bg-blue-50 rounded-lg">
+                                          <div className={`flex items-center justify-between mb-4 p-3 ${isDarkMode ? 'bg-gray-700' : 'bg-blue-50'} rounded-lg`}>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-gray-700">슬라이드 편집</span>
+                                                  <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>슬라이드 편집</span>
                         {hasUnsavedChanges && (
                           <span className="text-xs text-orange-600 bg-orange-100 px-2 py-1 rounded-full">
                             자동 저장 중...
@@ -754,10 +793,10 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                       </div>
                     </div>
 
-                    {/* 슬라이드 편집 영역 - 좌우 분할 */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                      {/* 직접 편집 영역 - 좌측 2/3 */}
-                      <div className="lg:col-span-2">
+                    {/* 슬라이드 편집 영역 - 상하 분할 */}
+                    <div className="space-y-4">
+                      {/* 직접 편집 영역 - 상단 */}
+                      <div>
                         <div
                           ref={containerRef}
                           data-slide-id={slide.id}
@@ -989,6 +1028,40 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                 }
                               }}
                             >
+                              {/* 선택된 요소의 컨트롤 */}
+                              {selectedElementId === element.id && (
+                                <>
+                                  {/* 삭제 버튼 */}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      deleteElement(element.id);
+                                    }}
+                                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors z-30"
+                                    style={{ fontSize: '12px' }}
+                                  >
+                                    ×
+                                  </button>
+                                  
+                                  {/* 리사이즈 핸들 */}
+                                  <div
+                                    className="absolute -bottom-2 -right-2 w-4 h-4 bg-blue-500 rounded-full cursor-se-resize z-30"
+                                    onMouseDown={(e) => {
+                                      e.stopPropagation();
+                                      handleMouseDown(e, element.id, 'resize');
+                                    }}
+                                  />
+                                  
+                                  {/* 회전 핸들 */}
+                                  <div
+                                    className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-green-500 rounded-full cursor-pointer z-30"
+                                    onMouseDown={(e) => {
+                                      e.stopPropagation();
+                                      // 회전 로직은 나중에 구현
+                                    }}
+                                  />
+                                </>
+                              )}
                               {element.type === 'text' ? (
                                 editingElement === element.id ? (
                                   <textarea
@@ -1170,6 +1243,14 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                           onSeedChange={handleBackgroundSeedChange}
                           onBlurChange={handleBackgroundBlurChange}
                           onGrayscaleChange={handleBackgroundGrayscaleChange}
+                          onBackgroundChange={(background) => {
+                            // 컬러 배경 적용 로직
+                            console.log('Color background selected:', background);
+                          }}
+                          onPatternChange={(pattern) => {
+                            // 패턴/필터 적용 로직
+                            console.log('Pattern/filter selected:', pattern);
+                          }}
                         />
 
                         {/* 요소 추가 버튼 - 한 줄 배치 */}
@@ -1200,24 +1281,51 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                           </div>
                         </div>
 
-                        {/* 선택된 요소의 속성 패널 */}
-                        {selectedElement && (
-                          <div className="bg-white rounded-lg border p-3 space-y-3">
-                            <div className="flex items-center justify-between mb-2">
-                              <h4 className="text-sm font-semibold text-gray-800">
-                                {selectedElement.type === 'text' ? '📝 텍스트 속성' : '🖼️ 이미지 속성'}
-                              </h4>
-                              <button
-                                onClick={() => setSelectedElementId(undefined)}
-                                className="text-xs text-gray-500 hover:text-gray-700"
-                              >
-                                ✕
-                              </button>
-                            </div>
-                            
-                            {selectedElement.type === 'text' && (
-                              <div className="space-y-2">
-                                <div className="grid grid-cols-3 gap-2">
+                      </div>
+                    </div>
+
+                    {/* 선택된 요소의 속성 패널 - 슬라이드 아래 */}
+                    {selectedElement && (
+                      <div className={`${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-300'} rounded-lg border p-4 space-y-4`}>
+                        <div className="flex items-center justify-between">
+                                                      <h4 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
+                            {selectedElement.type === 'text' ? '📝 텍스트 속성' : '🖼️ 이미지 속성'}
+                          </h4>
+                                                      <button
+                              onClick={() => setSelectedElementId(undefined)}
+                              className={`text-sm ${isDarkMode ? 'text-gray-400 hover:text-gray-200' : 'text-gray-500 hover:text-gray-700'}`}
+                            >
+                            ✕
+                          </button>
+                        </div>
+                        
+                        {/* 우선순위 조절 */}
+                                                 <div className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg p-3`}>
+                           <label className={`block text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-700'} mb-2`}>우선순위 (z-index)</label>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => updateElement(selectedElement.id, { zIndex: Math.max(1, (selectedElement.zIndex || 1) - 1) })}
+                              className="px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded"
+                              title="뒤로 보내기"
+                            >
+                              ↓
+                            </button>
+                                                         <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} min-w-8 text-center`}>
+                               {selectedElement.zIndex || 1}
+                             </span>
+                            <button
+                              onClick={() => updateElement(selectedElement.id, { zIndex: (selectedElement.zIndex || 1) + 1 })}
+                              className="px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded"
+                              title="앞으로 가져오기"
+                            >
+                              ↑
+                            </button>
+                          </div>
+                        </div>
+
+                        {selectedElement.type === 'text' && (
+                          <div className="space-y-3">
+                            <div className="grid grid-cols-3 gap-3">
                                   {/* 글자 크기 */}
                                   <div>
                                     <label className="block text-xs font-medium text-gray-600 mb-1">크기</label>

@@ -51,7 +51,8 @@ export const generateSlidesWithGemini = async (
   content: string,
   apiKey: string,
   language: 'ko' | 'en',
-  slideType: 'card-news' | 'ppt' | 'image-card' = 'ppt'
+  slideType: 'card-news' | 'ppt' | 'image-card' = 'ppt',
+  slideCount: number = 5
 ): Promise<Array<{ title: string; content: string; subtitle?: string; bulletPoints?: string[] }>> => {
   const languageInstruction = language === 'ko' 
     ? '한국어로 응답해주세요.' 
@@ -70,8 +71,8 @@ export const generateSlidesWithGemini = async (
       case 'ppt':
       default:
         return language === 'ko'
-          ? '일반적인 PPT 프레젠테이션 형태로 만들어주세요. 각 슬라이드는 상세하고 풍부한 내용으로 구성하세요. 제목, 부제목, 내용을 포함하되, 내용은 5-8개의 불릿 포인트로 구성하고 각 불릿 포인트는 2-3줄의 상세한 설명을 포함해야 합니다. 예시, 데이터, 구체적인 설명을 포함하여 전문적이고 정보가 풍부한 내용으로 작성해주세요.'
-          : 'Create in standard PPT presentation format with detailed and rich content. Each slide should include title, subtitle, and content with 5-8 bullet points. Each bullet point should contain 2-3 lines of detailed explanation with examples, data, and specific descriptions for professional and informative content.';
+          ? '일반적인 PPT 프레젠테이션 형태로 만들어주세요. 각 슬라이드는 매우 상세하고 풍부한 내용으로 구성하세요. 제목은 최대 15자 이하로 간결하게, 내용은 5-10개의 풍부한 불릿 포인트로 구성하고 각 불릿 포인트는 3-4줄의 자세한 설명을 포함해야 합니다. 예시, 데이터, 구체적인 설명, 실용적인 정보를 포함하여 전문적이고 정보가 매우 풍부한 내용으로 작성해주세요. 내용의 분량은 제목보다 훨씬 많아야 합니다.'
+          : 'Create in standard PPT presentation format with very detailed and rich content. Keep titles under 15 characters and make content with 5-10 rich bullet points. Each bullet point should contain 3-4 lines of detailed explanation with examples, data, specific descriptions, and practical information for very professional and informative content. Content should be much more extensive than titles.';
     }
   };
 
@@ -79,9 +80,10 @@ export const generateSlidesWithGemini = async (
 ${languageInstruction}
 ${getSlideTypeInstruction()}
 
-다음 내용을 바탕으로 프레젠테이션 슬라이드를 만들어주세요. 
-내용의 분량에 따라 적절히 여러 슬라이드로 나누어 주세요. 
+다음 내용을 바탕으로 정확히 ${slideCount}개의 프레젠테이션 슬라이드를 만들어주세요. 
+반드시 ${slideCount}개의 슬라이드로 나누어서 작성해주세요.
 각 슬라이드는 명확한 제목과 핵심 내용을 가져야 합니다.
+제목은 최대 15자 이하의 간결한 핵심 문구로 작성해주세요.
 
 내용: ${content}
 
@@ -98,10 +100,10 @@ CONTENT: [슬라이드 내용]
 ===SLIDE_END===
 
 지침:
-1. 내용이 길면 논리적으로 여러 슬라이드로 분할하세요
+1. 반드시 정확히 ${slideCount}개의 슬라이드를 생성하세요
 2. 각 슬라이드는 하나의 주요 아이디어에 집중하세요
-3. 제목은 간결하고 임팩트 있게 작성하세요
-4. 각 슬라이드의 내용은 읽기 쉽고 이해하기 쉽게 작성하세요
+3. 제목은 최대 15자 이하로 간결하고 임팩트 있게 작성하세요
+4. 내용은 풍부하고 상세하게 작성하세요
 5. 반드시 위의 형식을 정확히 따라주세요
 `;
 

@@ -171,11 +171,6 @@ export const ThemeFontSelector: React.FC<ThemeFontSelectorProps> = ({
           </button>
         ))}
       </div>
-      
-      {/* 현재 선택된 폰트 정보 */}
-      <div className="text-xs text-gray-500 p-2 bg-gray-50 rounded">
-        <div>선택됨: <span className="font-medium">{currentFont.name}</span></div>
-      </div>
     </div>
   );
 }; 

@@ -59,13 +59,15 @@ export const generateSlides = async (
   aspectRatio: AspectRatio,
   apiKey: string,
   language: 'ko' | 'en',
-  slideType: SlideType = 'ppt'
+  slideType: SlideType = 'ppt',
+  slideCount: number = 5,
+  templateStyle?: string
 ): Promise<Slide[]> => {
   try {
-    const slideData = await generateSlidesWithGemini(content, apiKey, language, slideType);
+    const slideData = await generateSlidesWithGemini(content, apiKey, language, slideType, slideCount);
     
     const slides: Slide[] = slideData.map((slide, index) => {
-      const layout = getLayoutForSlideType(slideType, index);
+      const layout = getLayoutForSlideType(slideType, index, templateStyle);
       const backgroundOptions = createDefaultBackgroundOptions(slide.content);
       const backgroundImage = generatePicsumImage(
         aspectRatio.width,
@@ -112,11 +114,26 @@ export const generateSlides = async (
   } catch (error) {
     console.error('Error generating slides with Gemini:', error);
     // Fallback to simple parsing if API fails
-    return generateSlidesSimple(content, theme, aspectRatio, slideType);
+    return generateSlidesSimple(content, theme, aspectRatio, slideType, templateStyle);
   }
 };
 
-const getLayoutForSlideType = (slideType: SlideType, index: number): string => {
+const getLayoutForSlideType = (slideType: SlideType, index: number, templateStyle?: string): string => {
+  // 템플릿 스타일이 지정된 경우
+  if (templateStyle && templateStyle !== 'mixed-auto') {
+    switch (templateStyle) {
+      case 'presentation-formal':
+        return 'title-top-content-bottom';
+      case 'side-by-side':
+        return 'title-left-content-right';
+      case 'title-focus':
+        return 'title-only';
+      default:
+        return 'title-top-content-bottom';
+    }
+  }
+
+  // 자동 혼합 모드이거나 템플릿이 지정되지 않은 경우
   switch (slideType) {
     case 'cardnews':
       return 'title-center'; 
@@ -124,7 +141,12 @@ const getLayoutForSlideType = (slideType: SlideType, index: number): string => {
       return 'title-center';
     case 'ppt':
     default:
-      return SLIDE_LAYOUTS[index % SLIDE_LAYOUTS.length]; // PPT 다양한 레이아웃
+      // 첫 번째 슬라이드는 제목 중심
+      if (index === 0) {
+        return 'title-only';
+      }
+      // 이후 슬라이드는 다양한 레이아웃을 순환
+      return SLIDE_LAYOUTS[(index - 1) % SLIDE_LAYOUTS.length];
   }
 };
 
@@ -132,7 +154,8 @@ const generateSlidesSimple = (
   content: string,
   theme: Theme,
   aspectRatio: AspectRatio,
-  slideType: SlideType
+  slideType: SlideType,
+  templateStyle?: string
 ): Slide[] => {
   // 섹션 분할
   const sections = content.split(/\n\s*\n/).filter(section => section.trim());
@@ -159,7 +182,7 @@ const generateSlidesSimple = (
         if (currentSlideContent.split(' ').length + sentence.split(' ').length > maxWordsPerSlide) {
           // 슬라이드 만들기
           const title = lines[0] || `${sectionIndex + 1}.${slideCount + 1} 주요 내용`;
-          const layout = getLayoutForSlideType(slideType, slides.length);
+          const layout = getLayoutForSlideType(slideType, slides.length, templateStyle);
           const backgroundImage = getBackgroundForContent(currentSlideContent);
           const htmlContent = generateSlideHTML(title, currentSlideContent.trim(), theme, aspectRatio, slides.length, undefined, undefined, layout, backgroundImage, 2, 0.3);
           
@@ -188,7 +211,7 @@ const generateSlidesSimple = (
       // 마지막 슬라이드 처리
       if (currentSlideContent.trim()) {
         const title = lines[0] || `${sectionIndex + 1}.${slideCount + 1} 주요 내용`;
-        const layout = getLayoutForSlideType(slideType, slides.length);
+        const layout = getLayoutForSlideType(slideType, slides.length, templateStyle);
         const backgroundImage = getBackgroundForContent(currentSlideContent);
         const htmlContent = generateSlideHTML(title, currentSlideContent.trim(), theme, aspectRatio, slides.length, undefined, undefined, layout, backgroundImage, 2, 0.3);
         
@@ -211,7 +234,7 @@ const generateSlidesSimple = (
       // 일반적인 슬라이드 생성
       const title = lines[0] || `슬라이드 ${slides.length + 1}`;
       const slideContent = lines.slice(1).join('\n') || section;
-      const layout = getLayoutForSlideType(slideType, slides.length);
+      const layout = getLayoutForSlideType(slideType, slides.length, templateStyle);
       const backgroundImage = getBackgroundForContent(slideContent);
       const htmlContent = generateSlideHTML(title, slideContent, theme, aspectRatio, slides.length, undefined, undefined, layout, backgroundImage, 2, 0.3);
       

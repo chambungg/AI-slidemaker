@@ -103,11 +103,6 @@ export const SlideTypeSelector: React.FC<SlideTypeSelectorProps> = ({
           </button>
         ))}
       </div>
-      
-      {/* 현재 선택된 타입 정보 */}
-      <div className="text-xs text-gray-500 p-2 bg-gray-50 rounded">
-        <div>선택됨: <span className="font-medium">{options.find(opt => opt.id === selectedType)?.name}</span></div>
-      </div>
     </div>
   );
 };

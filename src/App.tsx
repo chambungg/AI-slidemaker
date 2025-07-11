@@ -26,7 +26,9 @@ import {
   Lightbulb,
   Shuffle,
   Sun,
-  Moon
+  Moon,
+  Settings,
+  Languages
 } from 'lucide-react';
 // Hello World!
 function App() {
@@ -45,6 +47,8 @@ function App() {
 
   // 다크모드 상태 추가
   const [isDarkMode, setIsDarkMode] = useState(false);
+  // 설정 팝업 상태
+  const [showSettings, setShowSettings] = useState(false);
 
   const [apiSettings, setApiSettings] = useState<ApiSettings>({
     geminiApiKey: '',
@@ -298,7 +302,9 @@ function App() {
         state.aspectRatio, 
         state.geminiApiKey,
         state.language,
-        slideType
+        slideType,
+        slideCount,
+        templateStyle
       );
       setState(prev => ({
         ...prev,
@@ -414,6 +420,63 @@ function App() {
           </div>
           
           <div className="flex items-center gap-2">
+            {/* 언어 선택 */}
+            <select
+              value={state.language}
+              onChange={(e) => handleLanguageChange(e.target.value as 'ko' | 'en')}
+              className={`px-3 py-2 rounded-lg border transition-colors ${
+                isDarkMode 
+                  ? 'bg-gray-700 border-gray-600 text-white' 
+                  : 'bg-white border-gray-300 text-gray-900'
+              }`}
+            >
+              <option value="ko">한국어</option>
+              <option value="en">English</option>
+            </select>
+
+            {/* 설정 버튼 */}
+            <div className="relative">
+              <button
+                onClick={() => setShowSettings(!showSettings)}
+                className={`p-2 rounded-lg transition-colors ${
+                  isDarkMode 
+                    ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+                title="API 설정"
+              >
+                <Settings className="w-5 h-5" />
+              </button>
+
+              {/* 설정 팝업 */}
+              {showSettings && (
+                <div className={`absolute right-0 top-full mt-2 w-80 p-4 rounded-lg border shadow-lg z-50 ${
+                  isDarkMode 
+                    ? 'bg-gray-800 border-gray-600' 
+                    : 'bg-white border-gray-200'
+                }`}>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                        API 설정
+                      </h3>
+                      <button
+                        onClick={() => setShowSettings(false)}
+                        className={`text-sm ${isDarkMode ? 'text-gray-400 hover:text-gray-200' : 'text-gray-500 hover:text-gray-700'}`}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    <ApiSettingsComponent
+                      apiSettings={apiSettings}
+                      language={state.language}
+                      onApiKeyChange={handleApiKeyChange}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* 다크모드 토글 버튼 */}
             <button
               onClick={toggleDarkMode}
@@ -459,17 +522,6 @@ function App() {
           className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-r p-6 overflow-y-auto transition-colors`}
         >
           <div className="space-y-6">
-            <LanguageSelector
-              language={state.language}
-              onLanguageChange={handleLanguageChange}
-            />
-
-            <ApiSettingsComponent
-              apiSettings={apiSettings}
-              language={state.language}
-              onApiKeyChange={handleApiKeyChange}
-            />
-
             <div>
               <div className="flex items-center justify-between mb-3">
                 <label className="block text-sm font-medium text-gray-700">
@@ -567,6 +619,7 @@ function App() {
               aspectRatio={state.aspectRatio}
               themeFont={themeFont}
               slideBorderStyle={slideBorderStyle}
+              isDarkMode={isDarkMode}
               onTabChange={(tab) => setState(prev => ({ ...prev, activeTab: tab }))}
               onSlideSelect={(slideId) => setState(prev => ({ ...prev, activeSlideId: slideId }))}
               onSlideDelete={handleSlideDelete}
