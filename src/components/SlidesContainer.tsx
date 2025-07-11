@@ -24,6 +24,20 @@ import {
   Palette
 } from 'lucide-react';
 
+// 폰트 패밀리 옵션
+const FONT_FAMILIES = [
+  'Arial, sans-serif',
+  'Helvetica, sans-serif',
+  'Times New Roman, serif',
+  'Georgia, serif',
+  'Verdana, sans-serif',
+  'Courier New, monospace',
+  'Trebuchet MS, sans-serif',
+  'Impact, sans-serif',
+  'Comic Sans MS, cursive',
+  'Palatino, serif'
+];
+
 // 간단한 마크다운 렌더러 (미리보기용)
 const renderMarkdownPreview = (text: string): string => {
   return text
