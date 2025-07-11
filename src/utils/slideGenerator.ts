@@ -1,7 +1,48 @@
 import { Slide, Theme, AspectRatio } from '../types';
 import { generateSlidesWithGemini, updateSlideWithGemini } from './geminiApi';
 import { SlideType } from '../components/SlideTypeSelector';
+import { ThemeFont } from '../components/ThemeFontSelector';
+import { SlideBorderStyle } from '../components/SlideBorderStyleSelector';
 import { getBackgroundForContent, createDefaultBackgroundOptions, generatePicsumImage } from './imageSearch';
+
+// 간단한 마크다운 렌더러
+const renderMarkdown = (text: string): string => {
+  return text
+    // 헤딩 처리
+    .replace(/### (.*?)$/gm, '<h3>$1</h3>')
+    .replace(/## (.*?)$/gm, '<h2>$1</h2>')
+    .replace(/# (.*?)$/gm, '<h1>$1</h1>')
+    // 볼드 처리
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/__(.*?)__/g, '<strong>$1</strong>')
+    // 이탤릭 처리
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/_(.*?)_/g, '<em>$1</em>')
+    // 코드 처리
+    .replace(/`(.*?)`/g, '<code>$1</code>')
+    // 링크 처리
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
+    // 불릿 포인트 처리
+    .replace(/^\* (.*?)$/gm, '<li>$1</li>')
+    .replace(/^- (.*?)$/gm, '<li>$1</li>')
+    .replace(/^\+ (.*?)$/gm, '<li>$1</li>')
+    // 번호 목록 처리
+    .replace(/^\d+\. (.*?)$/gm, '<li>$1</li>')
+    // 줄바꿈 처리
+    .replace(/\n/g, '<br>');
+};
+
+// 마크다운 목록을 <ul> 또는 <ol>로 래핑
+const wrapLists = (html: string): string => {
+  // 연속된 <li> 태그들을 <ul>로 래핑
+  html = html.replace(/(<li>.*?<\/li>\s*)+/g, (match) => {
+    const isNumbered = /^\d+\./.test(match);
+    const tag = isNumbered ? 'ol' : 'ul';
+    return `<${tag}>${match}</${tag}>`;
+  });
+  
+  return html;
+};
 
 const SLIDE_LAYOUTS = [
   'title-center',
@@ -40,8 +81,8 @@ export const generateSlides = async (
         theme, 
         aspectRatio, 
         index,
-        slide.subtitle,
-        slide.bulletPoints,
+        undefined, // themeFont
+        undefined, // borderStyle
         layout,
         backgroundImage,
         backgroundOptions.blur,
@@ -213,8 +254,8 @@ export const generateSlideHTML = (
   theme: Theme,
   aspectRatio: AspectRatio,
   slideIndex: number,
-  subtitle?: string,
-  bulletPoints?: string[],
+  themeFont?: ThemeFont,
+  borderStyle?: SlideBorderStyle,
   layout: string = 'title-center',
   backgroundImage?: string,
   backgroundBlur: number = 2,
@@ -399,6 +440,46 @@ export const generateSlideHTML = (
 
   const layoutStyles = getLayoutStyles();
   
+  // 마크다운 렌더링
+  const renderedTitle = wrapLists(renderMarkdown(title));
+  const renderedContent = wrapLists(renderMarkdown(content));
+  
+  // 폰트 스타일 적용
+  const getFontStyles = () => {
+    if (!themeFont) return {
+      fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
+      textShadow: 'none',
+      letterSpacing: 'normal',
+      fontWeight: '400'
+    };
+    
+    return {
+      fontFamily: themeFont.fontFamily,
+      textShadow: themeFont.effects.textShadow || 'none',
+      letterSpacing: themeFont.effects.letterSpacing || 'normal',
+      fontWeight: themeFont.effects.fontWeight || '400'
+    };
+  };
+
+  const fontStyles = getFontStyles();
+
+  // 테두리 스타일 적용
+  const getBorderStyles = () => {
+    if (!borderStyle) return {
+      border: `2px solid ${theme.primary}30`,
+      borderRadius: '16px',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.1)'
+    };
+    
+    return {
+      border: `${borderStyle.borderWidth}px ${borderStyle.borderStyle} ${theme.primary}60`,
+      borderRadius: `${borderStyle.borderRadius}px`,
+      boxShadow: borderStyle.boxShadow
+    };
+  };
+
+  const borderStyles = getBorderStyles();
+
   // 배경 이미지가 있을 때 테마 색상과 흐림 효과 적용
   const getBackgroundStyle = () => {
     if (backgroundImage) {
@@ -419,16 +500,16 @@ export const generateSlideHTML = (
     <div class="slide-container" style="
       width: 100%;
       aspect-ratio: ${aspectRatio.width}/${aspectRatio.height};
-      border: 2px solid ${theme.primary}30;
-      border-radius: 16px;
+      border: ${borderStyles.border};
+      border-radius: ${borderStyles.borderRadius};
       padding: ${layoutStyles.padding};
       display: flex;
       flex-direction: column;
       ${layoutStyles.container};
       position: relative;
       overflow: hidden;
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+      font-family: ${fontStyles.fontFamily};
+      box-shadow: ${borderStyles.boxShadow};
       min-height: 400px;
     ">
       <div style="
@@ -459,28 +540,16 @@ export const generateSlideHTML = (
         ">
           <h1 style="
             font-size: ${layoutStyles.titleSize}rem;
-            font-weight: 800;
+            font-weight: ${fontStyles.fontWeight};
+            font-family: ${fontStyles.fontFamily};
             color: ${backgroundImage ? '#FFFFFF' : theme.primary};
-            margin-bottom: ${subtitle ? '0.6rem' : '0'};
-            text-shadow: ${backgroundImage ? '2px 2px 4px rgba(0,0,0,0.8)' : '0 2px 8px rgba(0,0,0,0.15)'};
+            margin-bottom: 0;
+            text-shadow: ${backgroundImage ? '2px 2px 4px rgba(0,0,0,0.8)' : fontStyles.textShadow};
             line-height: 1.2;
-            letter-spacing: -0.02em;
+            letter-spacing: ${fontStyles.letterSpacing};
             word-break: keep-all;
             overflow-wrap: break-word;
-          ">${title}</h1>
-          
-          ${subtitle ? `
-            <h2 style="
-              font-size: ${fontSizes.subtitle}rem;
-              font-weight: 600;
-              color: ${backgroundImage ? '#F0F0F0' : theme.secondary};
-              margin-bottom: 0;
-              opacity: 0.9;
-              line-height: 1.3;
-              text-shadow: ${backgroundImage ? '1px 1px 2px rgba(0,0,0,0.7)' : 'none'};
-              word-break: keep-all;
-            ">${subtitle}</h2>
-          ` : ''}
+          ">${renderedTitle}</h1>
         </div>
         
         ${layoutStyles.contentWidth !== '0%' ? `
@@ -496,53 +565,17 @@ export const generateSlideHTML = (
               font-size: ${layoutStyles.contentSize}rem;
               line-height: 1.6;
               color: ${backgroundImage ? '#F5F5F5' : theme.secondary};
-              font-weight: 400;
-              margin-bottom: ${bulletPoints && bulletPoints.length > 0 ? '0.8rem' : '0'};
-              text-shadow: ${backgroundImage ? '1px 1px 2px rgba(0,0,0,0.7)' : 'none'};
+              font-weight: ${fontStyles.fontWeight};
+              font-family: ${fontStyles.fontFamily};
+              margin-bottom: 0;
+              text-shadow: ${backgroundImage ? '1px 1px 2px rgba(0,0,0,0.7)' : fontStyles.textShadow};
+              letter-spacing: ${fontStyles.letterSpacing};
               word-break: keep-all;
               overflow-wrap: break-word;
             ">
-              ${content.split('\n').map(line => 
-                line.trim() ? `<p style="margin-bottom: 0.6rem; margin-top: 0;">${line}</p>` : ''
-              ).join('')}
+              ${renderedContent}
             </div>
-          ` : ''}
-          
-          ${bulletPoints && bulletPoints.length > 0 ? `
-            <ul style="
-              list-style: none;
-              padding: 0;
-              margin: 0;
-              display: flex;
-              flex-direction: column;
-              gap: 0.6rem;
-            ">
-              ${bulletPoints.map(bullet => `
-                <li style="
-                  display: flex;
-                  align-items: flex-start;
-                  gap: 0.6rem;
-                  font-size: ${fontSizes.bullet}rem;
-                  line-height: 1.5;
-                  color: ${backgroundImage ? '#F0F0F0' : theme.secondary};
-                  font-weight: 500;
-                  text-shadow: ${backgroundImage ? '1px 1px 2px rgba(0,0,0,0.7)' : 'none'};
-                  word-break: keep-all;
-                ">
-                  <span style="
-                    width: 6px;
-                    height: 6px;
-                    background: ${theme.accent};
-                    border-radius: 50%;
-                    margin-top: 0.5rem;
-                    flex-shrink: 0;
-                    box-shadow: ${backgroundImage ? '0 0 4px rgba(0,0,0,0.5)' : 'none'};
-                  "></span>
-                  <span>${bullet}</span>
-                </li>
-              `).join('')}
-            </ul>
-          ` : ''}
+                      ` : ''}
         </div>
         ` : ''}
       </div>
@@ -579,8 +612,8 @@ export const updateSlideContent = async (
         theme, 
         aspectRatio, 
         slide.order,
-        updatedSlide.subtitle,
-        updatedSlide.bulletPoints,
+        undefined, // themeFont
+        undefined, // borderStyle
         layout,
         slide.backgroundImage,
         slide.backgroundBlur || 2,
@@ -605,8 +638,8 @@ export const updateSlideContent = async (
         theme, 
         aspectRatio, 
         slide.order, 
-        undefined, 
-        undefined, 
+        undefined, // themeFont
+        undefined, // borderStyle
         layout, 
         slide.backgroundImage,
         slide.backgroundBlur || 2,

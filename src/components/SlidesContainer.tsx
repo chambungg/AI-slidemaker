@@ -24,6 +24,29 @@ import {
   Palette
 } from 'lucide-react';
 
+// 간단한 마크다운 렌더러 (미리보기용)
+const renderMarkdownPreview = (text: string): string => {
+  return text
+    // 헤딩 처리
+    .replace(/### (.*?)$/gm, '<span style="font-size: 1.2em; font-weight: bold;">$1</span>')
+    .replace(/## (.*?)$/gm, '<span style="font-size: 1.4em; font-weight: bold;">$1</span>')
+    .replace(/# (.*?)$/gm, '<span style="font-size: 1.6em; font-weight: bold;">$1</span>')
+    // 볼드 처리
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/__(.*?)__/g, '<strong>$1</strong>')
+    // 이탤릭 처리
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/_(.*?)_/g, '<em>$1</em>')
+    // 코드 처리
+    .replace(/`(.*?)`/g, '<code style="background: rgba(0,0,0,0.1); padding: 2px 4px; border-radius: 3px;">$1</code>')
+    // 불릿 포인트 처리
+    .replace(/^\* (.*?)$/gm, '• $1')
+    .replace(/^- (.*?)$/gm, '• $1')
+    .replace(/^\+ (.*?)$/gm, '• $1')
+    // 번호 목록 처리 (간단히)
+    .replace(/^\d+\. (.*?)$/gm, '$1');
+};
+
 interface SlidesContainerProps {
   slides: Slide[];
   activeSlideId: string | null;
@@ -614,7 +637,46 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
 
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => onSlideSelect('')}
+                          onClick={() => {
+                            // 편집 완료 전에 마지막 변경사항 강제 저장
+                            if (tempSlide && hasUnsavedChanges) {
+                              const finalBackgroundImage = tempSlide.backgroundSeed 
+                                ? generatePicsumImage(
+                                    aspectRatio.width,
+                                    aspectRatio.height,
+                                    tempSlide.backgroundSeed,
+                                    tempSlide.backgroundBlur || 2,
+                                    tempSlide.backgroundGrayscale || false
+                                  )
+                                : tempSlide.backgroundImage;
+
+                              const updatedSlide = {
+                                ...tempSlide,
+                                backgroundImage: finalBackgroundImage,
+                                htmlContent: generateSlideHTML(
+                                  tempSlide.title,
+                                  tempSlide.content,
+                                  theme,
+                                  aspectRatio,
+                                  tempSlide.order,
+                                  undefined,
+                                  undefined,
+                                  tempSlide.slideLayout || tempSlide.template || 'title-top-content-bottom',
+                                  finalBackgroundImage,
+                                  tempSlide.backgroundBlur || 2,
+                                  tempSlide.themeOverlay || 0.3
+                                ),
+                                elements: tempSlide.elements || [],
+                              };
+                              
+                              onSlideUpdate(updatedSlide);
+                            }
+                            
+                            // 잠시 후 편집 모드 종료
+                            setTimeout(() => {
+                              onSlideSelect('');
+                            }, 100);
+                          }}
                           className="px-3 py-2 text-sm bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
                         >
                           편집 완료
@@ -764,8 +826,8 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                       }
                                     }}
                                     onClick={(e) => e.stopPropagation()}
+                                    dangerouslySetInnerHTML={{ __html: renderMarkdownPreview(tempSlide.title) }}
                                   >
-                                    {tempSlide.title}
                                   </h1>
                                   {selectedElementId === 'slide-title' && (
                                     <div className="absolute -top-2 -right-2 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
@@ -798,8 +860,8 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                         }
                                       }}
                                       onClick={(e) => e.stopPropagation()}
+                                      dangerouslySetInnerHTML={{ __html: renderMarkdownPreview(tempSlide.content) }}
                                     >
-                                      {tempSlide.content}
                                     </div>
                                     {selectedElementId === 'slide-content' && (
                                       <div className="absolute -top-2 -right-2 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">

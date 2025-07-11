@@ -189,16 +189,16 @@ export const generatePicsumImage = (
   return url;
 };
 
-// 콘텐츠 기반 시드 생성
-export const generateSeedFromContent = (content: string): string => {
-  // 콘텐츠를 기반으로 일관된 시드 생성
+// 콘텐츠 기반 시드 생성 - 숫자 반환
+export const generateSeedFromContent = (content: string): number => {
+  // 콘텐츠를 기반으로 일관된 해시 생성
   let hash = 0;
   for (let i = 0; i < content.length; i++) {
     const char = content.charCodeAt(i);
     hash = ((hash << 5) - hash) + char;
     hash = hash & hash; // 32비트 정수로 변환
   }
-  return Math.abs(hash).toString();
+  return Math.abs(hash);
 };
 
 // 콘텐츠 분석 기반 카테고리별 시드 생성
@@ -226,7 +226,7 @@ export const getCategoryBasedSeed = (content: string): string => {
   }
   
   // 기본 시드
-  return generateSeedFromContent(content);
+  return generateSeedFromContent(content).toString();
 };
 
 // 배경 이미지 옵션 인터페이스
@@ -252,12 +252,12 @@ export const createDefaultBackgroundOptions = (content: string): BackgroundImage
 // 다음/이전 시드 생성 (좌우 버튼용)
 export const getNextSeed = (currentSeed: string): string => {
   const hash = generateSeedFromContent(currentSeed + 'next');
-  return hash;
+  return hash.toString();
 };
 
 export const getPreviousSeed = (currentSeed: string): string => {
   const hash = generateSeedFromContent(currentSeed + 'prev');
-  return hash;
+  return hash.toString();
 };
 
 // 랜덤 시드 생성
