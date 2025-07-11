@@ -54,34 +54,38 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
   onSlideMove,
 }) => {
   const [selectedElementId, setSelectedElementId] = useState<string | undefined>();
-  const [isDragging, setIsDragging] = useState(false);
-  const [isResizing, setIsResizing] = useState(false);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [tempSlide, setTempSlide] = useState<Slide | null>(null);
   const [editingElement, setEditingElement] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [tempSlide, setTempSlide] = useState<Slide | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
   const t = TRANSLATIONS[language];
 
-  const activeSlide = slides.find(slide => slide.id === activeSlideId);
-
-  // Initialize tempSlide when activeSlide changes
+  // 슬라이드 선택 시 임시 슬라이드 설정
   useEffect(() => {
-    if (activeSlide) {
-      setTempSlide(activeSlide);
-      setHasUnsavedChanges(false);
+    if (activeSlideId) {
+      const slide = slides.find(s => s.id === activeSlideId);
+      if (slide) {
+        setTempSlide({ ...slide });
+        setHasUnsavedChanges(false);
+      }
+    } else {
+      setTempSlide(null);
       setSelectedElementId(undefined);
       setEditingElement(null);
     }
-  }, [activeSlide]);
+  }, [activeSlideId, slides]);
 
+  // 요소 업데이트 함수
   const updateElement = useCallback((elementId: string, updates: Partial<SlideElement>) => {
     if (!tempSlide) return;
-    
-    const updatedElements = (tempSlide.elements || []).map(element =>
-      element.id === elementId ? { ...element, ...updates } : element
-    );
+
+    const updatedElements = tempSlide.elements?.map(el => 
+      el.id === elementId ? { ...el, ...updates } : el
+    ) || [];
 
     setTempSlide(prev => prev ? {
       ...prev,
@@ -92,26 +96,24 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
 
   const addNewElement = (type: 'text' | 'image' = 'text') => {
     if (!tempSlide) return;
-    
+
+    const containerWidth = 800;
+    const containerHeight = (800 * aspectRatio.height) / aspectRatio.width;
+
     const newElement: SlideElement = {
       id: `element-${Date.now()}`,
       type,
-      content: type === 'text' ? '새 텍스트를 입력하세요' : '',
-      x: 100,
-      y: 100,
+      content: type === 'text' ? '새 텍스트' : '',
+      x: Math.random() * (containerWidth - 200),
+      y: Math.random() * (containerHeight - 100),
       width: type === 'text' ? 200 : 150,
       height: type === 'text' ? 50 : 100,
       fontSize: 16,
-      fontFamily: 'Inter, system-ui, sans-serif',
-      color: theme.secondary,
+      fontFamily: 'Arial, sans-serif',
+      color: '#000000',
       fontWeight: 'normal',
       textAlign: 'left',
-      animation: ANIMATION_EFFECTS[0],
-      zIndex: 1,
-      backgroundColor: 'transparent',
-      borderColor: 'transparent',
-      borderWidth: 0,
-      rotation: 0,
+      zIndex: (tempSlide.elements?.length || 0) + 1,
     };
 
     setTempSlide(prev => prev ? {
@@ -120,98 +122,59 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
     } : null);
     setHasUnsavedChanges(true);
     setSelectedElementId(newElement.id);
-    
-    // 텍스트 요소인 경우 즉시 편집 모드로 전환
-    if (type === 'text') {
-      setTimeout(() => {
-        setEditingElement(newElement.id);
-      }, 100);
-    }
   };
 
   const deleteElement = (elementId: string) => {
     if (!tempSlide) return;
-    
+
+    const updatedElements = tempSlide.elements?.filter(el => el.id !== elementId) || [];
     setTempSlide(prev => prev ? {
       ...prev,
-      elements: (prev.elements || []).filter(el => el.id !== elementId),
+      elements: updatedElements,
     } : null);
     setHasUnsavedChanges(true);
-    if (selectedElementId === elementId) {
-      setSelectedElementId(undefined);
-    }
+    setSelectedElementId(undefined);
   };
 
   const handleMouseDown = (e: React.MouseEvent, elementId: string, action: 'move' | 'resize' = 'move') => {
     e.preventDefault();
-    e.stopPropagation();
-    
-    if (!tempSlide || !containerRef.current) return;
-    const element = tempSlide.elements?.find(el => el.id === elementId);
-    if (!element) return;
-
-    const rect = containerRef.current.getBoundingClientRect();
-    const relativeX = e.clientX - rect.left;
-    const relativeY = e.clientY - rect.top;
-
-    if (action === 'move') {
-      setIsDragging(true);
-      setDragOffset({
-        x: relativeX - element.x,
-        y: relativeY - element.y,
-      });
-    } else {
-      setIsResizing(true);
-      setDragOffset({
-        x: relativeX - element.x - element.width,
-        y: relativeY - element.y - element.height,
-      });
-    }
-    
+    setIsDragging(true);
+    setDragStart({ x: e.clientX, y: e.clientY });
     setSelectedElementId(elementId);
-    setEditingElement(null);
-  };
 
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!selectedElementId || !containerRef.current || !tempSlide) return;
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!tempSlide) return;
 
-    const rect = containerRef.current.getBoundingClientRect();
-    const relativeX = e.clientX - rect.left;
-    const relativeY = e.clientY - rect.top;
-    
-    if (isDragging) {
-      const x = Math.max(0, Math.min(rect.width - 50, relativeX - dragOffset.x));
-      const y = Math.max(0, Math.min(rect.height - 30, relativeY - dragOffset.y));
-      updateElement(selectedElementId, { x, y });
-    } else if (isResizing) {
-      const element = tempSlide.elements?.find(el => el.id === selectedElementId);
-      if (element) {
-        const width = Math.max(50, relativeX - element.x);
-        const height = Math.max(30, relativeY - element.y);
-        updateElement(selectedElementId, { width, height });
+      const deltaX = e.clientX - dragStart.x;
+      const deltaY = e.clientY - dragStart.y;
+
+      const element = tempSlide.elements?.find(el => el.id === elementId);
+      if (!element) return;
+
+      if (action === 'move') {
+        updateElement(elementId, {
+          x: Math.max(0, element.x + deltaX),
+          y: Math.max(0, element.y + deltaY),
+        });
+      } else if (action === 'resize') {
+        updateElement(elementId, {
+          width: Math.max(50, element.width + deltaX),
+          height: Math.max(30, element.height + deltaY),
+        });
       }
-    }
-  }, [isDragging, isResizing, selectedElementId, dragOffset, updateElement, tempSlide]);
 
-  const handleMouseUp = useCallback(() => {
-    setIsDragging(false);
-    setIsResizing(false);
-  }, []);
+      setDragStart({ x: e.clientX, y: e.clientY });
+    };
 
-  useEffect(() => {
-    if (isDragging || isResizing) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = isDragging ? 'move' : 'nw-resize';
-      document.body.style.userSelect = 'none';
-      return () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
-        document.body.style.cursor = '';
-        document.body.style.userSelect = '';
-      };
-    }
-  }, [isDragging, isResizing, handleMouseMove, handleMouseUp]);
+    const handleMouseUp = () => {
+      setIsDragging(false);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
 
   const handleTextEdit = (elementId: string, newContent: string) => {
     updateElement(elementId, { content: newContent });
@@ -228,49 +191,32 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
   };
 
   const handleImageUpload = (elementId?: string) => {
-    fileInputRef.current?.click();
-    fileInputRef.current!.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          const imageUrl = event.target?.result as string;
-          if (elementId) {
-            updateElement(elementId, { content: imageUrl });
-          } else {
-            // 새 이미지 요소 생성
-            const newElement: SlideElement = {
-              id: `element-${Date.now()}`,
-              type: 'image',
-              content: imageUrl,
-              x: 100,
-              y: 100,
-              width: 150,
-              height: 100,
-              fontSize: 16,
-              fontFamily: 'Inter, system-ui, sans-serif',
-              color: theme.secondary,
-              fontWeight: 'normal',
-              textAlign: 'left',
-              animation: ANIMATION_EFFECTS[0],
-              zIndex: 1,
-              backgroundColor: 'transparent',
-              borderColor: 'transparent',
-              borderWidth: 0,
-              rotation: 0,
-            };
-
-            setTempSlide(prev => prev ? {
-              ...prev,
-              elements: [...(prev.elements || []), newElement],
-            } : null);
-            setHasUnsavedChanges(true);
-            setSelectedElementId(newElement.id);
-          }
-        };
-        reader.readAsDataURL(file);
-      }
-    };
+    if (fileInputRef.current) {
+      fileInputRef.current.onchange = (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const imageUrl = e.target?.result as string;
+            
+            if (elementId) {
+              updateElement(elementId, { content: imageUrl });
+            } else {
+              addNewElement('image');
+              setTimeout(() => {
+                const newElements = tempSlide?.elements || [];
+                const lastElement = newElements[newElements.length - 1];
+                if (lastElement) {
+                  updateElement(lastElement.id, { content: imageUrl });
+                }
+              }, 100);
+            }
+          };
+          reader.readAsDataURL(file);
+        }
+      };
+      fileInputRef.current.click();
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -278,41 +224,41 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
     const files = Array.from(e.dataTransfer.files);
     const imageFile = files.find(file => file.type.startsWith('image/'));
     
-    if (imageFile && containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      
+    if (imageFile) {
       const reader = new FileReader();
-      reader.onload = (event) => {
-        const imageUrl = event.target?.result as string;
-        const newElement: SlideElement = {
-          id: `element-${Date.now()}`,
-          type: 'image',
-          content: imageUrl,
-          x: Math.max(0, x - 75),
-          y: Math.max(0, y - 50),
-          width: 150,
-          height: 100,
-          fontSize: 16,
-          fontFamily: 'Inter, system-ui, sans-serif',
-          color: theme.secondary,
-          fontWeight: 'normal',
-          textAlign: 'left',
-          animation: ANIMATION_EFFECTS[0],
-          zIndex: 1,
-          backgroundColor: 'transparent',
-          borderColor: 'transparent',
-          borderWidth: 0,
-          rotation: 0,
-        };
+      reader.onload = (e) => {
+        const imageUrl = e.target?.result as string;
+        
+        const rect = containerRef.current?.getBoundingClientRect();
+        if (rect) {
+          const x = e.dataTransfer.dropEffect === 'copy' ? 
+            Math.max(0, e.clientX - rect.left - 75) : 100;
+          const y = e.dataTransfer.dropEffect === 'copy' ? 
+            Math.max(0, e.clientY - rect.top - 50) : 100;
+          
+          const newElement: SlideElement = {
+            id: `element-${Date.now()}`,
+            type: 'image',
+            content: imageUrl,
+            x,
+            y,
+            width: 150,
+            height: 100,
+            fontSize: 16,
+            fontFamily: 'Arial, sans-serif',
+            color: '#000000',
+            fontWeight: 'normal',
+            textAlign: 'left',
+            zIndex: (tempSlide?.elements?.length || 0) + 1,
+          };
 
-        setTempSlide(prev => prev ? {
-          ...prev,
-          elements: [...(prev.elements || []), newElement],
-        } : null);
-        setHasUnsavedChanges(true);
-        setSelectedElementId(newElement.id);
+          setTempSlide(prev => prev ? {
+            ...prev,
+            elements: [...(prev.elements || []), newElement],
+          } : null);
+          setHasUnsavedChanges(true);
+          setSelectedElementId(newElement.id);
+        }
       };
       reader.readAsDataURL(imageFile);
     }
@@ -335,7 +281,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
           tempSlide.backgroundGrayscale || false
         )
       : tempSlide.backgroundImage;
-    
+
     const updatedSlide = {
       ...tempSlide,
       backgroundImage: finalBackgroundImage,
@@ -652,531 +598,332 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                       {/* 직접 편집 영역 - 좌측 2/3 */}
                       <div className="lg:col-span-2">
-                    <div
-                      ref={containerRef}
-                      data-slide-id={slide.id}
-                      className="relative border-2 border-dashed border-blue-300 rounded-lg overflow-hidden bg-white cursor-crosshair"
-                      style={getSlideContainerStyle()}
-                      onClick={(e) => {
-                        // 빈 공간 클릭 시 선택 해제
-                        if (e.target === e.currentTarget) {
-                          setSelectedElementId(undefined);
-                          setEditingElement(null);
-                        }
-                      }}
-                      onDrop={handleDrop}
-                      onDragOver={handleDragOver}
-                    >
-                      {/* 기본 슬라이드 배경 */}
-                      <div 
-                        className="absolute inset-0 z-0"
-                        style={{
-                          background: tempSlide.backgroundImage 
-                            ? (() => {
-                                const themeHex = theme.primary.replace('#', '');
-                                const r = parseInt(themeHex.substr(0, 2), 16);
-                                const g = parseInt(themeHex.substr(2, 2), 16);
-                                const b = parseInt(themeHex.substr(4, 2), 16);
-                                const themeRgba = `rgba(${r}, ${g}, ${b}, ${tempSlide.themeOverlay || 0.3})`;
-                                return `linear-gradient(${themeRgba}, ${themeRgba}), url(${tempSlide.backgroundImage}) center/cover`;
-                              })()
-                            : `linear-gradient(135deg, ${theme.primary}15, ${theme.secondary}15)`,
-                          filter: tempSlide.backgroundImage && tempSlide.backgroundBlur ? `blur(${tempSlide.backgroundBlur}px)` : 'none',
-                        }}
-                      />
-
-                      {/* 기본 슬라이드 텍스트 (편집 가능) - 템플릿에 따라 레이아웃 변경 */}
-                      {(() => {
-                        const layout = tempSlide.slideLayout || 'title-top-content-bottom';
-                        const getLayoutClasses = () => {
-                          switch (layout) {
-                            case 'title-top-content-bottom':
-                              return {
-                                container: 'flex-col justify-center items-center',
-                                titleAlign: 'text-center',
-                                contentAlign: 'text-center',
-                                titleSize: 'text-4xl',
-                                contentSize: 'text-lg',
-                                titleWidth: 'w-full',
-                                contentWidth: 'w-full'
-                              };
-                            case 'title-left-content-right':
-                              return {
-                                container: 'flex-row justify-center items-center',
-                                titleAlign: 'text-left',
-                                contentAlign: 'text-left',
-                                titleSize: 'text-3xl',
-                                contentSize: 'text-base',
-                                titleWidth: 'w-2/5',
-                                contentWidth: 'w-2/5'
-                              };
-                            case 'title-right-content-left':
-                              return {
-                                container: 'flex-row-reverse justify-center items-center',
-                                titleAlign: 'text-right',
-                                contentAlign: 'text-left',
-                                titleSize: 'text-3xl',
-                                contentSize: 'text-base',
-                                titleWidth: 'w-2/5',
-                                contentWidth: 'w-2/5'
-                              };
-                            case 'title-only':
-                              return {
-                                container: 'flex-col justify-center items-center',
-                                titleAlign: 'text-center',
-                                contentAlign: 'text-center',
-                                titleSize: 'text-5xl',
-                                contentSize: 'text-lg',
-                                titleWidth: 'w-full',
-                                contentWidth: 'w-0'
-                              };
-                            case 'title-small-top-left':
-                              return {
-                                container: 'flex-col justify-start items-start',
-                                titleAlign: 'text-left',
-                                contentAlign: 'text-left',
-                                titleSize: 'text-2xl',
-                                contentSize: 'text-xl',
-                                titleWidth: 'w-full',
-                                contentWidth: 'w-full'
-                              };
-                            case 'title-small-top-right':
-                              return {
-                                container: 'flex-col justify-start items-end',
-                                titleAlign: 'text-right',
-                                contentAlign: 'text-left',
-                                titleSize: 'text-2xl',
-                                contentSize: 'text-xl',
-                                titleWidth: 'w-full',
-                                contentWidth: 'w-full'
-                              };
-                            default:
-                              return {
-                                container: 'flex-col justify-center items-center',
-                                titleAlign: 'text-center',
-                                contentAlign: 'text-center',
-                                titleSize: 'text-4xl',
-                                contentSize: 'text-lg',
-                                titleWidth: 'w-full',
-                                contentWidth: 'w-full'
-                              };
-                          }
-                        };
-                        
-                        const layoutClasses = getLayoutClasses();
-                        
-                        return (
-                          <div className={`absolute inset-0 z-10 p-8 flex gap-4 ${layoutClasses.container}`}>
-                            <div 
-                              className={`${layoutClasses.titleWidth} relative hover:ring-1 hover:ring-blue-300 cursor-pointer`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedElementId('slide-title');
-                              }}
-                            >
-                        <h1
-                          contentEditable
-                          suppressContentEditableWarning
-                                className={`${layoutClasses.titleSize} font-bold ${layoutClasses.titleAlign} mb-4 outline-none cursor-text hover:bg-blue-100 hover:bg-opacity-50 p-2 rounded transition-colors`}
-                          style={{
-                            color: tempSlide.backgroundImage ? '#FFFFFF' : theme.primary,
-                            textShadow: tempSlide.backgroundImage ? '2px 2px 4px rgba(0,0,0,0.8)' : 'none',
-                          }}
-                          onBlur={(e) => handleSlideTextEdit('title', e.target.textContent || '')}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                              e.preventDefault();
-                              e.currentTarget.blur();
-                            }
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {tempSlide.title}
-                        </h1>
-                              {selectedElementId === 'slide-title' && (
-                                <div className="absolute -top-2 -right-2 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
-                                  <div className="w-2 h-2 bg-white rounded-full"></div>
-                                </div>
-                              )}
-                            </div>
-                            
-                            {layout !== 'title-only' && (
-                              <div 
-                                className={`${layoutClasses.contentWidth} relative hover:ring-1 hover:ring-blue-300 cursor-pointer`}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedElementId('slide-content');
-                                }}
-                              >
                         <div
-                          contentEditable
-                          suppressContentEditableWarning
-                                  className={`${layoutClasses.contentSize} ${layoutClasses.contentAlign} outline-none cursor-text hover:bg-green-100 hover:bg-opacity-50 p-2 rounded transition-colors`}
-                          style={{
-                            color: tempSlide.backgroundImage ? '#F0F0F0' : theme.secondary,
-                            textShadow: tempSlide.backgroundImage ? '1px 1px 2px rgba(0,0,0,0.7)' : 'none',
-                          }}
-                          onBlur={(e) => handleSlideTextEdit('content', e.target.textContent || '')}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                              e.preventDefault();
-                              e.currentTarget.blur();
-                            }
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {tempSlide.content}
-                        </div>
-                                {selectedElementId === 'slide-content' && (
-                                  <div className="absolute -top-2 -right-2 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
-                                    <div className="w-2 h-2 bg-white rounded-full"></div>
-                      </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })()}
-
-                      {/* 추가된 요소들 */}
-                      {tempSlide.elements?.map((element) => (
-                        <div
-                          key={element.id}
-                          className={`absolute group z-20 ${
-                            selectedElementId === element.id ? 'ring-2 ring-blue-500 ring-offset-1' : 'hover:ring-1 hover:ring-blue-300'
-                          }`}
-                          style={{
-                            left: element.x,
-                            top: element.y,
-                            width: element.width,
-                            height: element.height,
-                            cursor: isDragging ? 'move' : 'pointer',
-                            transform: `rotate(${element.rotation || 0}deg)`,
-                            backgroundColor: element.backgroundColor || 'transparent',
-                            border: `${element.borderWidth || 0}px solid ${element.borderColor || 'transparent'}`,
-                            zIndex: element.zIndex || 1,
-                            minWidth: '20px',
-                            minHeight: '20px',
-                          }}
-                          onMouseDown={(e) => {
-                            e.stopPropagation();
-                            handleMouseDown(e, element.id, 'move');
-                          }}
+                          ref={containerRef}
+                          data-slide-id={slide.id}
+                          className="relative border-2 border-dashed border-blue-300 rounded-lg overflow-hidden bg-white cursor-crosshair"
+                          style={getSlideContainerStyle()}
                           onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedElementId(element.id);
-                            setEditingElement(null);
-                          }}
-                          onDoubleClick={(e) => {
-                            e.stopPropagation();
-                            if (element.type === 'text') {
-                              setEditingElement(element.id);
+                            // 빈 공간 클릭 시 선택 해제
+                            if (e.target === e.currentTarget) {
+                              setSelectedElementId(undefined);
+                              setEditingElement(null);
                             }
                           }}
+                          onDrop={handleDrop}
+                          onDragOver={handleDragOver}
                         >
-                          {element.type === 'text' ? (
-                            editingElement === element.id ? (
-                              <textarea
-                                value={element.content}
-                                onChange={(e) => handleTextEdit(element.id, e.target.value)}
-                                onBlur={() => setEditingElement(null)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter' && !e.shiftKey) {
-                                    e.preventDefault();
-                                    setEditingElement(null);
-                                  }
-                                  if (e.key === 'Escape') {
-                                    setEditingElement(null);
-                                  }
-                                }}
-                                autoFocus
-                                className="w-full h-full resize-none border-none outline-none bg-transparent"
-                                style={{
-                                  fontSize: element.fontSize,
-                                  fontFamily: element.fontFamily,
-                                  color: element.color,
-                                  fontWeight: element.fontWeight,
-                                  textAlign: element.textAlign,
-                                  lineHeight: 1.4,
-                                  padding: '8px',
-                                }}
-                              />
-                            ) : (
-                              <div
-                                className="w-full h-full outline-none cursor-text"
-                                style={{
-                                  fontSize: element.fontSize,
-                                  fontFamily: element.fontFamily,
-                                  color: element.color,
-                                  fontWeight: element.fontWeight,
-                                  textAlign: element.textAlign,
-                                  lineHeight: 1.4,
-                                  padding: '8px',
-                                  textShadow: tempSlide.backgroundImage ? '2px 2px 4px rgba(0,0,0,0.8)' : 'none',
-                                  background: selectedElementId === element.id ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
-                                  borderRadius: '4px',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: element.textAlign === 'center' ? 'center' : element.textAlign === 'right' ? 'flex-end' : 'flex-start',
-                                }}
-                              >
-                                {element.content || '텍스트를 입력하세요'}
-                              </div>
-                            )
-                          ) : (
-                            <div className="w-full h-full relative pointer-events-none">
-                              {element.content ? (
-                                <img
-                                  src={element.content}
-                                  alt="Slide element"
-                                  className="w-full h-full object-cover rounded pointer-events-none"
-                                  style={{
-                                    border: selectedElementId === element.id ? '2px solid #3B82F6' : '1px solid #E5E7EB',
-                                  }}
-                                  draggable={false}
-                                />
-                              ) : (
+                          {/* 기본 슬라이드 배경 */}
+                          <div 
+                            className="absolute inset-0 z-0"
+                            style={{
+                              background: tempSlide.backgroundImage 
+                                ? (() => {
+                                    const themeHex = theme.primary.replace('#', '');
+                                    const r = parseInt(themeHex.substr(0, 2), 16);
+                                    const g = parseInt(themeHex.substr(2, 2), 16);
+                                    const b = parseInt(themeHex.substr(4, 2), 16);
+                                    const themeRgba = `rgba(${r}, ${g}, ${b}, ${tempSlide.themeOverlay || 0.3})`;
+                                    return `linear-gradient(${themeRgba}, ${themeRgba}), url(${tempSlide.backgroundImage}) center/cover`;
+                                  })()
+                                : `linear-gradient(135deg, ${theme.primary}15, ${theme.secondary}15)`,
+                              filter: tempSlide.backgroundImage && tempSlide.backgroundBlur ? `blur(${tempSlide.backgroundBlur}px)` : 'none',
+                            }}
+                          />
+
+                          {/* 기본 슬라이드 텍스트 (편집 가능) - 템플릿에 따라 레이아웃 변경 */}
+                          {(() => {
+                            const layout = tempSlide.slideLayout || 'title-top-content-bottom';
+                            const getLayoutClasses = () => {
+                              switch (layout) {
+                                case 'title-top-content-bottom':
+                                  return {
+                                    container: 'flex-col justify-center items-center',
+                                    titleAlign: 'text-center',
+                                    contentAlign: 'text-center',
+                                    titleSize: 'text-4xl',
+                                    contentSize: 'text-lg',
+                                    titleWidth: 'w-full',
+                                    contentWidth: 'w-full'
+                                  };
+                                case 'title-left-content-right':
+                                  return {
+                                    container: 'flex-row justify-center items-center',
+                                    titleAlign: 'text-left',
+                                    contentAlign: 'text-left',
+                                    titleSize: 'text-3xl',
+                                    contentSize: 'text-base',
+                                    titleWidth: 'w-2/5',
+                                    contentWidth: 'w-2/5'
+                                  };
+                                case 'title-right-content-left':
+                                  return {
+                                    container: 'flex-row-reverse justify-center items-center',
+                                    titleAlign: 'text-right',
+                                    contentAlign: 'text-left',
+                                    titleSize: 'text-3xl',
+                                    contentSize: 'text-base',
+                                    titleWidth: 'w-2/5',
+                                    contentWidth: 'w-2/5'
+                                  };
+                                case 'title-only':
+                                  return {
+                                    container: 'flex-col justify-center items-center',
+                                    titleAlign: 'text-center',
+                                    contentAlign: 'text-center',
+                                    titleSize: 'text-5xl',
+                                    contentSize: 'text-lg',
+                                    titleWidth: 'w-full',
+                                    contentWidth: 'w-0'
+                                  };
+                                case 'title-small-top-left':
+                                  return {
+                                    container: 'flex-col justify-start items-start',
+                                    titleAlign: 'text-left',
+                                    contentAlign: 'text-left',
+                                    titleSize: 'text-2xl',
+                                    contentSize: 'text-xl',
+                                    titleWidth: 'w-full',
+                                    contentWidth: 'w-full'
+                                  };
+                                case 'title-small-top-right':
+                                  return {
+                                    container: 'flex-col justify-start items-end',
+                                    titleAlign: 'text-right',
+                                    contentAlign: 'text-left',
+                                    titleSize: 'text-2xl',
+                                    contentSize: 'text-xl',
+                                    titleWidth: 'w-full',
+                                    contentWidth: 'w-full'
+                                  };
+                                default:
+                                  return {
+                                    container: 'flex-col justify-center items-center',
+                                    titleAlign: 'text-center',
+                                    contentAlign: 'text-center',
+                                    titleSize: 'text-4xl',
+                                    contentSize: 'text-lg',
+                                    titleWidth: 'w-full',
+                                    contentWidth: 'w-full'
+                                  };
+                              }
+                            };
+                            
+                            const layoutClasses = getLayoutClasses();
+                            
+                            return (
+                              <div className={`absolute inset-0 z-10 p-8 flex gap-4 ${layoutClasses.container}`}>
                                 <div 
-                                  className="w-full h-full border-2 border-dashed border-gray-300 rounded flex items-center justify-center bg-gray-50 hover:bg-gray-100 cursor-pointer pointer-events-auto"
+                                  className={`${layoutClasses.titleWidth} relative hover:ring-1 hover:ring-blue-300 cursor-pointer`}
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleImageUpload(element.id);
+                                    setSelectedElementId('slide-title');
                                   }}
                                 >
-                                  <div className="text-center">
-                                    <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                                    <p className="text-sm text-gray-500">이미지 업로드</p>
+                                  <h1
+                                    contentEditable
+                                    suppressContentEditableWarning
+                                    className={`${layoutClasses.titleSize} font-bold ${layoutClasses.titleAlign} mb-4 outline-none cursor-text hover:bg-blue-100 hover:bg-opacity-50 p-2 rounded transition-colors`}
+                                    style={{
+                                      color: tempSlide.backgroundImage ? '#FFFFFF' : theme.primary,
+                                      textShadow: tempSlide.backgroundImage ? '2px 2px 4px rgba(0,0,0,0.8)' : 'none',
+                                    }}
+                                    onBlur={(e) => handleSlideTextEdit('title', e.target.textContent || '')}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        e.currentTarget.blur();
+                                      }
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {tempSlide.title}
+                                  </h1>
+                                  {selectedElementId === 'slide-title' && (
+                                    <div className="absolute -top-2 -right-2 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
+                                      <div className="w-2 h-2 bg-white rounded-full"></div>
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                {layout !== 'title-only' && (
+                                  <div 
+                                    className={`${layoutClasses.contentWidth} relative hover:ring-1 hover:ring-blue-300 cursor-pointer`}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedElementId('slide-content');
+                                    }}
+                                  >
+                                    <div
+                                      contentEditable
+                                      suppressContentEditableWarning
+                                      className={`${layoutClasses.contentSize} ${layoutClasses.contentAlign} outline-none cursor-text hover:bg-green-100 hover:bg-opacity-50 p-2 rounded transition-colors`}
+                                      style={{
+                                        color: tempSlide.backgroundImage ? '#F0F0F0' : theme.secondary,
+                                        textShadow: tempSlide.backgroundImage ? '1px 1px 2px rgba(0,0,0,0.7)' : 'none',
+                                      }}
+                                      onBlur={(e) => handleSlideTextEdit('content', e.target.textContent || '')}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && !e.shiftKey) {
+                                          e.preventDefault();
+                                          e.currentTarget.blur();
+                                        }
+                                      }}
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      {tempSlide.content}
+                                    </div>
+                                    {selectedElementId === 'slide-content' && (
+                                      <div className="absolute -top-2 -right-2 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
+                                        <div className="w-2 h-2 bg-white rounded-full"></div>
+                                      </div>
+                                    )}
                                   </div>
+                                )}
+                              </div>
+                            );
+                          })()}
+
+                          {/* 추가된 요소들 */}
+                          {tempSlide.elements?.map((element) => (
+                            <div
+                              key={element.id}
+                              className={`absolute group z-20 ${
+                                selectedElementId === element.id ? 'ring-2 ring-blue-500 ring-offset-1' : 'hover:ring-1 hover:ring-blue-300'
+                              }`}
+                              style={{
+                                left: element.x,
+                                top: element.y,
+                                width: element.width,
+                                height: element.height,
+                                cursor: isDragging ? 'move' : 'pointer',
+                                transform: `rotate(${element.rotation || 0}deg)`,
+                                backgroundColor: element.backgroundColor || 'transparent',
+                                border: `${element.borderWidth || 0}px solid ${element.borderColor || 'transparent'}`,
+                                zIndex: element.zIndex || 1,
+                                minWidth: '20px',
+                                minHeight: '20px',
+                              }}
+                              onMouseDown={(e) => {
+                                e.stopPropagation();
+                                handleMouseDown(e, element.id, 'move');
+                              }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedElementId(element.id);
+                                setEditingElement(null);
+                              }}
+                              onDoubleClick={(e) => {
+                                e.stopPropagation();
+                                if (element.type === 'text') {
+                                  setEditingElement(element.id);
+                                }
+                              }}
+                            >
+                              {element.type === 'text' ? (
+                                editingElement === element.id ? (
+                                  <textarea
+                                    value={element.content}
+                                    onChange={(e) => handleTextEdit(element.id, e.target.value)}
+                                    onBlur={() => setEditingElement(null)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        setEditingElement(null);
+                                      }
+                                      if (e.key === 'Escape') {
+                                        setEditingElement(null);
+                                      }
+                                    }}
+                                    autoFocus
+                                    className="w-full h-full resize-none border-none outline-none bg-transparent"
+                                    style={{
+                                      fontSize: element.fontSize,
+                                      fontFamily: element.fontFamily,
+                                      color: element.color,
+                                      fontWeight: element.fontWeight,
+                                      textAlign: element.textAlign,
+                                      lineHeight: 1.4,
+                                      padding: '8px',
+                                    }}
+                                  />
+                                ) : (
+                                  <div
+                                    className="w-full h-full outline-none cursor-text"
+                                    style={{
+                                      fontSize: element.fontSize,
+                                      fontFamily: element.fontFamily,
+                                      color: element.color,
+                                      fontWeight: element.fontWeight,
+                                      textAlign: element.textAlign,
+                                      lineHeight: 1.4,
+                                      padding: '8px',
+                                      textShadow: tempSlide.backgroundImage ? '2px 2px 4px rgba(0,0,0,0.8)' : 'none',
+                                      background: selectedElementId === element.id ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
+                                      borderRadius: '4px',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: element.textAlign === 'center' ? 'center' : element.textAlign === 'right' ? 'flex-end' : 'flex-start',
+                                    }}
+                                  >
+                                    {element.content || '텍스트를 입력하세요'}
+                                  </div>
+                                )
+                              ) : (
+                                <div className="w-full h-full relative pointer-events-none">
+                                  {element.content ? (
+                                    <img
+                                      src={element.content}
+                                      alt="Slide element"
+                                      className="w-full h-full object-cover rounded pointer-events-none"
+                                      style={{
+                                        border: selectedElementId === element.id ? '2px solid #3B82F6' : '1px solid #E5E7EB',
+                                      }}
+                                      draggable={false}
+                                    />
+                                  ) : (
+                                    <div 
+                                      className="w-full h-full border-2 border-dashed border-gray-300 rounded flex items-center justify-center bg-gray-50 hover:bg-gray-100 cursor-pointer pointer-events-auto"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleImageUpload(element.id);
+                                      }}
+                                    >
+                                      <div className="text-center">
+                                        <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                                        <p className="text-sm text-gray-500">이미지 업로드</p>
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                               )}
-                            </div>
-                          )}
-                          
-                          {/* 선택된 요소의 컨트롤 핸들 */}
-                          {selectedElementId === element.id && (
-                            <>
-                              {/* 삭제 버튼 */}
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  deleteElement(element.id);
-                                }}
-                                className="absolute -top-3 -right-3 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 z-30 shadow-lg"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </button>
                               
-                              {/* 크기 조절 핸들 */}
-                              <div
-                                className="absolute -bottom-2 -right-2 w-4 h-4 bg-blue-500 rounded-full cursor-nw-resize hover:bg-blue-600 z-30 shadow-lg"
-                                onMouseDown={(e) => handleMouseDown(e, element.id, 'resize')}
-                              />
-                            </>
-                          )}
-                        </div>
-                      ))}
-
-                      {/* 드롭 존 안내 */}
-                      <div className="absolute bottom-2 left-2 text-xs text-gray-500 bg-white bg-opacity-80 px-2 py-1 rounded pointer-events-none">
-                        💡 텍스트를 더블클릭해서 편집하거나 이미지를 드래그해서 추가하세요
-                      </div>
-                    </div>
-
-                    {/* 선택된 요소의 속성 패널 - 컴팩트 버전 */}
-                    {selectedElement && (
-                      <div className="mt-3 bg-gray-50 p-3 rounded-lg border">
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="text-sm font-semibold text-gray-800">
-                          {selectedElement.type === 'text' ? '📝 텍스트 속성' : '🖼️ 이미지 속성'}
-                        </h4>
-                          <button
-                            onClick={() => setSelectedElementId(undefined)}
-                            className="text-xs text-gray-500 hover:text-gray-700"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                        
-                        {selectedElement.type === 'text' && (
-                          <div className="space-y-2">
-                            <div className="grid grid-cols-3 gap-2">
-                              {/* 글자 크기 */}
-                              <div>
-                                <label className="block text-xs font-medium text-gray-600 mb-1">크기</label>
-                                <div className="flex items-center gap-1">
-                                <input
-                                  type="range"
-                                  min="12"
-                                  max="72"
-                                  value={selectedElement.fontSize}
-                                  onChange={(e) => updateElement(selectedElement.id, { fontSize: parseInt(e.target.value) })}
-                                    className="flex-1"
-                                />
-                                  <span className="text-xs text-gray-500 w-8">{selectedElement.fontSize}</span>
-                                </div>
-                              </div>
-
-                              {/* 글꼴 */}
-                              <div>
-                                <label className="block text-xs font-medium text-gray-600 mb-1">글꼴</label>
-                                <select
-                                  value={selectedElement.fontFamily}
-                                  onChange={(e) => updateElement(selectedElement.id, { fontFamily: e.target.value })}
-                                  className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
-                                >
-                                  {FONT_FAMILIES.map((font) => (
-                                    <option key={font} value={font}>
-                                      {font.split(',')[0]}
-                                    </option>
-                                  ))}
-                                </select>
-                              </div>
-
-                              {/* 글자 색상 */}
-                              <div>
-                                <label className="block text-xs font-medium text-gray-600 mb-1">색상</label>
-                                <input
-                                  type="color"
-                                  value={selectedElement.color}
-                                  onChange={(e) => updateElement(selectedElement.id, { color: e.target.value })}
-                                  className="w-full h-6 border border-gray-300 rounded"
-                                />
-                              </div>
-
-                            </div>
-
-                            {/* 텍스트 정렬 및 굵기 */}
-                            <div className="grid grid-cols-2 gap-2">
-                              <div>
-                                <label className="block text-xs font-medium text-gray-600 mb-1">굵기</label>
-                                <select
-                                  value={selectedElement.fontWeight}
-                                  onChange={(e) => updateElement(selectedElement.id, { fontWeight: e.target.value })}
-                                  className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
-                                >
-                                  <option value="normal">보통</option>
-                                  <option value="bold">굵게</option>
-                                  <option value="bolder">더 굵게</option>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-medium text-gray-600 mb-1">정렬</label>
-                                <div className="flex gap-1">
-                                {(['left', 'center', 'right'] as const).map((align) => (
+                              {/* 선택된 요소의 컨트롤 핸들 */}
+                              {selectedElementId === element.id && (
+                                <>
+                                  {/* 삭제 버튼 */}
                                   <button
-                                    key={align}
-                                    onClick={() => updateElement(selectedElement.id, { textAlign: align })}
-                                      className={`p-1 rounded text-xs ${
-                                      selectedElement.textAlign === align
-                                        ? 'bg-blue-500 text-white'
-                                        : 'bg-gray-200 hover:bg-gray-300'
-                                    }`}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      deleteElement(element.id);
+                                    }}
+                                    className="absolute -top-3 -right-3 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 z-30 shadow-lg"
                                   >
-                                      {align === 'left' && <AlignLeft className="w-3 h-3" />}
-                                      {align === 'center' && <AlignCenter className="w-3 h-3" />}
-                                      {align === 'right' && <AlignRight className="w-3 h-3" />}
+                                    <Trash2 className="w-3 h-3" />
                                   </button>
-                                ))}
-                              </div>
+                                  
+                                  {/* 크기 조절 핸들 */}
+                                  <div
+                                    className="absolute -bottom-2 -right-2 w-4 h-4 bg-blue-500 rounded-full cursor-se-resize z-30"
+                                    onMouseDown={(e) => {
+                                      e.stopPropagation();
+                                      handleMouseDown(e, element.id, 'resize');
+                                    }}
+                                  />
+                                </>
+                              )}
                             </div>
-                            </div>
-
-                            {/* 위치 및 크기 */}
-                            <div className="grid grid-cols-4 gap-1">
-                              <div>
-                                <label className="block text-xs font-medium text-gray-600 mb-1">X</label>
-                                <input
-                                  type="number"
-                                  value={Math.round(selectedElement.x)}
-                                  onChange={(e) => updateElement(selectedElement.id, { x: parseInt(e.target.value) || 0 })}
-                                  className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-xs font-medium text-gray-600 mb-1">Y</label>
-                                <input
-                                  type="number"
-                                  value={Math.round(selectedElement.y)}
-                                  onChange={(e) => updateElement(selectedElement.id, { y: parseInt(e.target.value) || 0 })}
-                                  className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-xs font-medium text-gray-600 mb-1">너비</label>
-                                <input
-                                  type="number"
-                                  value={Math.round(selectedElement.width)}
-                                  onChange={(e) => updateElement(selectedElement.id, { width: parseInt(e.target.value) || 50 })}
-                                  className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-xs font-medium text-gray-600 mb-1">높이</label>
-                                <input
-                                  type="number"
-                                  value={Math.round(selectedElement.height)}
-                                  onChange={(e) => updateElement(selectedElement.id, { height: parseInt(e.target.value) || 30 })}
-                                  className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {selectedElement.type === 'image' && (
-                          <div className="space-y-2">
-                            <button
-                              onClick={() => handleImageUpload(selectedElement.id)}
-                              className="w-full flex items-center justify-center gap-1 px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-                            >
-                              <Upload className="w-3 h-3" />
-                              이미지 변경
-                            </button>
-                            
-                            {/* 위치 및 크기 */}
-                            <div className="grid grid-cols-4 gap-1">
-                              <div>
-                                <label className="block text-xs font-medium text-gray-600 mb-1">X</label>
-                                <input
-                                  type="number"
-                                  value={Math.round(selectedElement.x)}
-                                  onChange={(e) => updateElement(selectedElement.id, { x: parseInt(e.target.value) || 0 })}
-                                  className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-xs font-medium text-gray-600 mb-1">Y</label>
-                                <input
-                                  type="number"
-                                  value={Math.round(selectedElement.y)}
-                                  onChange={(e) => updateElement(selectedElement.id, { y: parseInt(e.target.value) || 0 })}
-                                  className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-xs font-medium text-gray-600 mb-1">너비</label>
-                                <input
-                                  type="number"
-                                  value={Math.round(selectedElement.width)}
-                                  onChange={(e) => updateElement(selectedElement.id, { width: parseInt(e.target.value) || 50 })}
-                                  className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-xs font-medium text-gray-600 mb-1">높이</label>
-                                <input
-                                  type="number"
-                                  value={Math.round(selectedElement.height)}
-                                  onChange={(e) => updateElement(selectedElement.id, { height: parseInt(e.target.value) || 30 })}
-                                  className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                          ))}
                         </div>
                       </div>
 
@@ -1268,10 +1015,10 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                               <div className="space-y-2">
                                 <div className="grid grid-cols-3 gap-2">
                                   {/* 글자 크기 */}
-                            <div>
+                                  <div>
                                     <label className="block text-xs font-medium text-gray-600 mb-1">크기</label>
                                     <div className="flex items-center gap-1">
-                              <input
+                                      <input
                                         type="range"
                                         min="12"
                                         max="72"
@@ -1281,10 +1028,10 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                       />
                                       <span className="text-xs text-gray-500 w-8">{selectedElement.fontSize}</span>
                                     </div>
-                            </div>
+                                  </div>
 
                                   {/* 글꼴 */}
-                            <div>
+                                  <div>
                                     <label className="block text-xs font-medium text-gray-600 mb-1">글꼴</label>
                                     <select
                                       value={selectedElement.fontFamily}
@@ -1302,18 +1049,18 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                   {/* 글자 색상 */}
                                   <div>
                                     <label className="block text-xs font-medium text-gray-600 mb-1">색상</label>
-                              <input
-                                type="color"
+                                    <input
+                                      type="color"
                                       value={selectedElement.color}
                                       onChange={(e) => updateElement(selectedElement.id, { color: e.target.value })}
                                       className="w-full h-6 border border-gray-300 rounded"
                                     />
                                   </div>
-                            </div>
+                                </div>
 
                                 {/* 텍스트 정렬 및 굵기 */}
                                 <div className="grid grid-cols-2 gap-2">
-                            <div>
+                                  <div>
                                     <label className="block text-xs font-medium text-gray-600 mb-1">굵기</label>
                                     <select
                                       value={selectedElement.fontWeight}
@@ -1352,31 +1099,31 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                 <div className="grid grid-cols-4 gap-1">
                                   <div>
                                     <label className="block text-xs font-medium text-gray-600 mb-1">X</label>
-                              <input
+                                    <input
                                       type="number"
                                       value={Math.round(selectedElement.x)}
                                       onChange={(e) => updateElement(selectedElement.id, { x: parseInt(e.target.value) || 0 })}
                                       className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
                                     />
-                            </div>
-                            <div>
+                                  </div>
+                                  <div>
                                     <label className="block text-xs font-medium text-gray-600 mb-1">Y</label>
-                              <input
+                                    <input
                                       type="number"
                                       value={Math.round(selectedElement.y)}
                                       onChange={(e) => updateElement(selectedElement.id, { y: parseInt(e.target.value) || 0 })}
                                       className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
                                     />
-                            </div>
-                            <div>
+                                  </div>
+                                  <div>
                                     <label className="block text-xs font-medium text-gray-600 mb-1">너비</label>
-                              <input
-                                type="number"
+                                    <input
+                                      type="number"
                                       value={Math.round(selectedElement.width)}
                                       onChange={(e) => updateElement(selectedElement.id, { width: parseInt(e.target.value) || 50 })}
                                       className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
-                              />
-                            </div>
+                                    />
+                                  </div>
                                   <div>
                                     <label className="block text-xs font-medium text-gray-600 mb-1">높이</label>
                                     <input
@@ -1385,8 +1132,8 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                       onChange={(e) => updateElement(selectedElement.id, { height: parseInt(e.target.value) || 30 })}
                                       className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
                                     />
-                          </div>
-                        </div>
+                                  </div>
+                                </div>
                               </div>
                             )}
 
@@ -1399,50 +1146,50 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                   <Upload className="w-3 h-3" />
                                   이미지 변경
                                 </button>
-
-                        {/* 위치 및 크기 */}
+                                
+                                {/* 위치 및 크기 */}
                                 <div className="grid grid-cols-4 gap-1">
-                            <div>
+                                  <div>
                                     <label className="block text-xs font-medium text-gray-600 mb-1">X</label>
-                              <input
-                                type="number"
-                                value={Math.round(selectedElement.x)}
-                                onChange={(e) => updateElement(selectedElement.id, { x: parseInt(e.target.value) || 0 })}
+                                    <input
+                                      type="number"
+                                      value={Math.round(selectedElement.x)}
+                                      onChange={(e) => updateElement(selectedElement.id, { x: parseInt(e.target.value) || 0 })}
                                       className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
-                              />
-                            </div>
-                            <div>
+                                    />
+                                  </div>
+                                  <div>
                                     <label className="block text-xs font-medium text-gray-600 mb-1">Y</label>
-                              <input
-                                type="number"
-                                value={Math.round(selectedElement.y)}
-                                onChange={(e) => updateElement(selectedElement.id, { y: parseInt(e.target.value) || 0 })}
+                                    <input
+                                      type="number"
+                                      value={Math.round(selectedElement.y)}
+                                      onChange={(e) => updateElement(selectedElement.id, { y: parseInt(e.target.value) || 0 })}
                                       className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
-                              />
-                            </div>
-                            <div>
+                                    />
+                                  </div>
+                                  <div>
                                     <label className="block text-xs font-medium text-gray-600 mb-1">너비</label>
-                              <input
-                                type="number"
-                                value={Math.round(selectedElement.width)}
-                                onChange={(e) => updateElement(selectedElement.id, { width: parseInt(e.target.value) || 50 })}
+                                    <input
+                                      type="number"
+                                      value={Math.round(selectedElement.width)}
+                                      onChange={(e) => updateElement(selectedElement.id, { width: parseInt(e.target.value) || 50 })}
                                       className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
-                              />
-                            </div>
-                            <div>
+                                    />
+                                  </div>
+                                  <div>
                                     <label className="block text-xs font-medium text-gray-600 mb-1">높이</label>
-                              <input
-                                type="number"
-                                value={Math.round(selectedElement.height)}
-                                onChange={(e) => updateElement(selectedElement.id, { height: parseInt(e.target.value) || 30 })}
+                                    <input
+                                      type="number"
+                                      value={Math.round(selectedElement.height)}
+                                      onChange={(e) => updateElement(selectedElement.id, { height: parseInt(e.target.value) || 30 })}
                                       className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
-                              />
-                            </div>
-                          </div>
-                        </div>
+                                    />
+                                  </div>
+                                </div>
+                              </div>
                             )}
-                      </div>
-                    )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
