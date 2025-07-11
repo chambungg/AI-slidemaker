@@ -12,6 +12,10 @@ import { ApiSettings as ApiSettingsComponent } from './components/ApiSettings';
 import { LanguageSelector } from './components/LanguageSelector';
 import { SlideTypeSelector, SlideType } from './components/SlideTypeSelector';
 import { ResizablePanel } from './components/ResizablePanel';
+import { ThemeFontSelector, ThemeFont } from './components/ThemeFontSelector';
+import { ThemeTemplateSelector, ThemeTemplateOption } from './components/ThemeTemplateSelector';
+import { SlideBorderStyleSelector, SlideBorderStyle } from './components/SlideBorderStyleSelector';
+import { SlideCountSelector } from './components/SlideCountSelector';
 import { 
   Sparkles, 
   Download, 
@@ -41,6 +45,33 @@ function App() {
   });
 
   const [slideType, setSlideType] = useState<SlideType>('ppt');
+  const [slideCount, setSlideCount] = useState<number>(5);
+  const [themeFont, setThemeFont] = useState<ThemeFont>({
+    id: 'modern-clean',
+    name: '모던 클린',
+    fontFamily: "'Pretendard', 'Noto Sans KR', sans-serif",
+    fontUrl: 'https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.8/dist/web/variable/pretendardvariable.css',
+    effects: {
+      textShadow: '0 2px 4px rgba(0,0,0,0.1)',
+      textStroke: 'none',
+      letterSpacing: '-0.02em',
+      fontWeight: '600'
+    }
+  });
+  const [themeTemplate, setThemeTemplate] = useState<ThemeTemplateOption>({
+    id: 'mixed-auto',
+    name: '자동 혼합',
+    description: '슬라이드마다 다양한 레이아웃 자동 적용',
+    defaultLayout: 'title-top-content-bottom'
+  });
+  const [slideBorderStyle, setSlideBorderStyle] = useState<SlideBorderStyle>({
+    id: 'clean-minimal',
+    name: '깔끔한 선',
+    borderWidth: 1,
+    borderStyle: 'solid',
+    borderRadius: 8,
+    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+  });
 
   // Load saved settings from localStorage
   useEffect(() => {
@@ -171,6 +202,27 @@ function App() {
     }));
   };
 
+  const handleSlideMove = (fromIndex: number, toIndex: number) => {
+    if (toIndex < 0 || toIndex >= state.slides.length) return;
+    
+    setState(prev => {
+      const newSlides = [...prev.slides];
+      const [movedSlide] = newSlides.splice(fromIndex, 1);
+      newSlides.splice(toIndex, 0, movedSlide);
+      
+      // 순서 번호 업데이트
+      const updatedSlides = newSlides.map((slide, index) => ({
+        ...slide,
+        order: index
+      }));
+      
+      return {
+        ...prev,
+        slides: updatedSlides,
+      };
+    });
+  };
+
   const handleAddSlide = (afterIndex?: number) => {
     const backgroundOptions = createDefaultBackgroundOptions(t.addContentHere);
     const backgroundImage = generatePicsumImage(
@@ -293,10 +345,30 @@ function App() {
               onTypeChange={handleSlideTypeChange}
             />
 
+            <SlideCountSelector
+              count={slideCount}
+              onCountChange={setSlideCount}
+            />
+
             <ThemeSelector
               selectedTheme={state.theme}
               onThemeChange={(theme) => setState(prev => ({ ...prev, theme }))}
               language={state.language}
+            />
+
+            <ThemeFontSelector
+              selectedFont={themeFont}
+              onFontChange={setThemeFont}
+            />
+
+            <ThemeTemplateSelector
+              selectedTemplate={themeTemplate}
+              onTemplateChange={setThemeTemplate}
+            />
+
+            <SlideBorderStyleSelector
+              selectedStyle={slideBorderStyle}
+              onStyleChange={setSlideBorderStyle}
             />
 
             <AspectRatioSelector
@@ -338,9 +410,10 @@ function App() {
               onTabChange={(tab) => setState(prev => ({ ...prev, activeTab: tab }))}
               onSlideSelect={(slideId) => setState(prev => ({ ...prev, activeSlideId: slideId }))}
               onSlideDelete={handleSlideDelete}
-              onAddSlide={handleAddSlide}
-              onSlideUpdate={handleSlideUpdate}
-            />
+                                onAddSlide={handleAddSlide}
+                  onSlideUpdate={handleSlideUpdate}
+                  onSlideMove={handleSlideMove}
+                />
           ) : (
             <div className="h-full flex items-center justify-center text-gray-500">
               <div className="text-center">

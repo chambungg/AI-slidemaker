@@ -240,7 +240,7 @@ export const generateSlideHTML = (
     switch (layout) {
       case 'title-top-content-bottom':
         return {
-          container: 'justify-start items-center',
+          container: 'justify-center items-center',
           titlePosition: 'text-center',
           contentPosition: 'text-center',
           flexDirection: 'flex-col',

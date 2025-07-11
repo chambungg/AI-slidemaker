@@ -74,6 +74,10 @@ export interface SlideGeneratorState {
   geminiApiKey: string;
   language: 'ko' | 'en';
   selectedElementId?: string;
+  themeFont?: any;
+  themeTemplate?: any;
+  slideBorderStyle?: any;
+  slideCount?: number;
 }
 
 export interface ApiSettings {

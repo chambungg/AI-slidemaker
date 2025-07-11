@@ -70,8 +70,8 @@ export const generateSlidesWithGemini = async (
       case 'ppt':
       default:
         return language === 'ko'
-          ? '일반적인 PPT 프레젠테이션 형태로 만들어주세요. 제목, 부제목, 내용, 불릿 포인트를 적절히 활용하세요.'
-          : 'Create in standard PPT presentation format. Use titles, subtitles, content, and bullet points appropriately.';
+          ? '일반적인 PPT 프레젠테이션 형태로 만들어주세요. 각 슬라이드는 상세하고 풍부한 내용으로 구성하세요. 제목, 부제목, 내용을 포함하되, 내용은 5-8개의 불릿 포인트로 구성하고 각 불릿 포인트는 2-3줄의 상세한 설명을 포함해야 합니다. 예시, 데이터, 구체적인 설명을 포함하여 전문적이고 정보가 풍부한 내용으로 작성해주세요.'
+          : 'Create in standard PPT presentation format with detailed and rich content. Each slide should include title, subtitle, and content with 5-8 bullet points. Each bullet point should contain 2-3 lines of detailed explanation with examples, data, and specific descriptions for professional and informative content.';
     }
   };
 

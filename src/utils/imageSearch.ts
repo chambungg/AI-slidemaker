@@ -165,7 +165,7 @@ export const getRandomImages = (count: number = 6): PexelsImage[] => {
   }));
 };
 
-// Lorem Picsum API를 사용한 배경 이미지 생성
+// Lorem Picsum API를 사용한 배경 이미지 생성 (ID 방식)
 export const generatePicsumImage = (
   width: number = 1200,
   height: number = 800,
@@ -173,19 +173,17 @@ export const generatePicsumImage = (
   blur?: number,
   grayscale?: boolean
 ): string => {
-  let url = `https://picsum.photos/${width}/${height}`;
+  // 시드를 기반으로 일관된 이미지 ID 생성 (1-1000 범위)
+  const imageId = seed ? (generateSeedFromContent(seed) % 1000) + 1 : Math.floor(Math.random() * 1000) + 1;
   
-  if (seed) {
-    url += `?seed=${seed}`;
-  }
+  let url = `https://picsum.photos/id/${imageId}/${width}/${height}`;
   
   const params = new URLSearchParams();
-  if (seed) params.append('seed', seed);
-  if (blur) params.append('blur', blur.toString());
+  if (blur && blur > 0) params.append('blur', blur.toString());
   if (grayscale) params.append('grayscale', '');
   
   if (params.toString()) {
-    url = `https://picsum.photos/${width}/${height}?${params.toString()}`;
+    url += `?${params.toString()}`;
   }
   
   return url;

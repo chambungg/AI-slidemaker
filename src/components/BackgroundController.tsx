@@ -84,7 +84,34 @@ export const BackgroundController: React.FC<BackgroundControllerProps> = ({
           className="w-full h-20 object-cover rounded border"
         />
         <div className="absolute inset-0 bg-black bg-opacity-20 rounded flex items-center justify-center">
-          <span className="text-white text-xs font-medium">미리보기</span>
+          <span className="text-white text-xs font-medium">현재 이미지</span>
+        </div>
+      </div>
+
+      {/* 후보 이미지들 */}
+      <div className="space-y-2">
+        <h5 className="text-xs font-medium text-gray-600">다른 이미지 후보</h5>
+        <div className="grid grid-cols-5 gap-1">
+          {[1, 2, 3, 4, 5].map((candidateIndex) => {
+            const candidateSeed = `${currentSeed}-alt-${candidateIndex}`;
+            const candidateUrl = generatePicsumImage(width, height, candidateSeed, blur, grayscale);
+            
+            return (
+              <button
+                key={candidateIndex}
+                onClick={() => onSeedChange(candidateSeed)}
+                className="relative aspect-square rounded overflow-hidden border hover:border-blue-300 transition-colors"
+                title={`후보 이미지 ${candidateIndex}`}
+              >
+                <img
+                  src={candidateUrl}
+                  alt={`Candidate ${candidateIndex}`}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-black bg-opacity-10 hover:bg-opacity-0 transition-opacity" />
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -93,12 +120,12 @@ export const BackgroundController: React.FC<BackgroundControllerProps> = ({
         {/* 블러 조절 */}
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">
-            블러 효과: {blur}
+            블러 효과: {blur === 0 ? '없음' : blur}
           </label>
           <input
             type="range"
             min="0"
-            max="10"
+            max="3"
             value={blur}
             onChange={(e) => onBlurChange(parseInt(e.target.value))}
             className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"

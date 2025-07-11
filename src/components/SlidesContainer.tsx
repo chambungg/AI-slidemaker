@@ -3,6 +3,7 @@ import { Slide, Theme, AspectRatio, SlideElement } from '../types';
 import { SlidePreview } from './SlidePreview';
 import { BackgroundController } from './BackgroundController';
 import { SlideTemplateSelector, SlideLayoutType } from './SlideTemplateSelector';
+import { SlideOrderController } from './SlideOrderController';
 import { TRANSLATIONS, FONT_FAMILIES, ANIMATION_EFFECTS } from '../constants';
 import { generateSlideHTML } from '../utils/slideGenerator';
 import { generatePicsumImage } from '../utils/imageSearch';
@@ -35,6 +36,7 @@ interface SlidesContainerProps {
   onSlideDelete: (slideId: string) => void;
   onAddSlide: (afterIndex?: number) => void;
   onSlideUpdate: (slide: Slide) => void;
+  onSlideMove: (fromIndex: number, toIndex: number) => void;
 }
 
 export const SlidesContainer: React.FC<SlidesContainerProps> = ({
@@ -49,6 +51,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
   onSlideDelete,
   onAddSlide,
   onSlideUpdate,
+  onSlideMove,
 }) => {
   const [selectedElementId, setSelectedElementId] = useState<string | undefined>();
   const [isDragging, setIsDragging] = useState(false);
@@ -322,8 +325,20 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
   const handleApplyChanges = () => {
     if (!tempSlide) return;
     
+    // 최종 배경 이미지 생성 (블러와 그레이스케일 효과 포함)
+    const finalBackgroundImage = tempSlide.backgroundSeed 
+      ? generatePicsumImage(
+          aspectRatio.width,
+          aspectRatio.height,
+          tempSlide.backgroundSeed,
+          tempSlide.backgroundBlur || 2,
+          tempSlide.backgroundGrayscale || false
+        )
+      : tempSlide.backgroundImage;
+    
     const updatedSlide = {
       ...tempSlide,
+      backgroundImage: finalBackgroundImage,
       htmlContent: generateSlideHTML(
         tempSlide.title,
         tempSlide.content,
@@ -333,7 +348,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
         undefined,
         undefined,
         tempSlide.slideLayout || tempSlide.template || 'title-top-content-bottom',
-        tempSlide.backgroundImage,
+        finalBackgroundImage,
         tempSlide.backgroundBlur || 2,
         tempSlide.themeOverlay || 0.3
       ),
@@ -374,18 +389,9 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
   const handleBackgroundBlurChange = (blur: number) => {
     if (!tempSlide) return;
     
-    const newBackgroundImage = generatePicsumImage(
-      aspectRatio.width,
-      aspectRatio.height,
-      tempSlide.backgroundSeed || 'default',
-      blur,
-      tempSlide.backgroundGrayscale || false
-    );
-    
     const updatedSlide = {
       ...tempSlide,
       backgroundBlur: blur,
-      backgroundImage: newBackgroundImage,
     };
     
     setTempSlide(updatedSlide);
@@ -395,18 +401,9 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
   const handleBackgroundGrayscaleChange = (grayscale: boolean) => {
     if (!tempSlide) return;
     
-    const newBackgroundImage = generatePicsumImage(
-      aspectRatio.width,
-      aspectRatio.height,
-      tempSlide.backgroundSeed || 'default',
-      tempSlide.backgroundBlur || 2,
-      grayscale
-    );
-    
     const updatedSlide = {
       ...tempSlide,
       backgroundGrayscale: grayscale,
-      backgroundImage: newBackgroundImage,
     };
     
     setTempSlide(updatedSlide);
@@ -582,6 +579,12 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                   <span className="text-sm font-medium text-gray-600">
                     슬라이드 {index + 1}
                   </span>
+                  <SlideOrderController
+                    slideIndex={index}
+                    totalSlides={slides.length}
+                    onMoveUp={() => onSlideMove(index, index - 1)}
+                    onMoveDown={() => onSlideMove(index, index + 1)}
+                  />
                 </div>
                 <button
                   onClick={() => exportSlideAsImage(slide)}
@@ -612,46 +615,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                     {/* 편집 컨트롤 바 */}
                     <div className="flex items-center justify-between mb-4 p-3 bg-blue-50 rounded-lg">
                       <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => addNewElement('text')}
-                          className="flex items-center gap-1 px-3 py-2 text-sm bg-green-600 text-white hover:bg-green-700 rounded-lg transition-colors"
-                        >
-                          <Plus className="w-4 h-4" />
-                          텍스트 추가
-                        </button>
-                        <button
-                          onClick={() => handleImageUpload()}
-                          className="flex items-center gap-1 px-3 py-2 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors"
-                        >
-                          <ImageIcon className="w-4 h-4" />
-                          이미지 추가
-                        </button>
-                        
-                        {/* 배치 템플릿 버튼들 */}
-                        <div className="flex items-center gap-1 ml-4">
-                          <span className="text-xs text-gray-600">배치:</span>
-                          <button
-                            onClick={() => applyLayoutTemplate('left')}
-                            className="px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded"
-                            title="좌측 정렬"
-                          >
-                            <AlignLeft className="w-3 h-3" />
-                          </button>
-                          <button
-                            onClick={() => applyLayoutTemplate('center')}
-                            className="px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded"
-                            title="가운데 정렬"
-                          >
-                            <AlignCenter className="w-3 h-3" />
-                          </button>
-                          <button
-                            onClick={() => applyLayoutTemplate('right')}
-                            className="px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded"
-                            title="우측 정렬"
-                          >
-                            <AlignRight className="w-3 h-3" />
-                          </button>
-                        </div>
+                        <span className="text-sm font-medium text-gray-700">슬라이드 편집</span>
                       </div>
 
                       <div className="flex items-center gap-2">
@@ -684,25 +648,10 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                       </div>
                     </div>
 
-                    {/* 슬라이드 템플릿 및 배경 컨트롤 */}
-                    <div className="mb-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
-                      <SlideTemplateSelector
-                        currentTemplate={tempSlide.slideLayout || 'title-top-content-bottom'}
-                        onTemplateChange={handleTemplateChange}
-                      />
-                      <BackgroundController
-                        currentSeed={tempSlide.backgroundSeed || 'default'}
-                        blur={tempSlide.backgroundBlur || 2}
-                        grayscale={tempSlide.backgroundGrayscale || false}
-                        width={aspectRatio.width}
-                        height={aspectRatio.height}
-                        onSeedChange={handleBackgroundSeedChange}
-                        onBlurChange={handleBackgroundBlurChange}
-                        onGrayscaleChange={handleBackgroundGrayscaleChange}
-                      />
-                    </div>
-
-                    {/* 직접 편집 영역 */}
+                    {/* 슬라이드 편집 영역 - 좌우 분할 */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                      {/* 직접 편집 영역 - 좌측 2/3 */}
+                      <div className="lg:col-span-2">
                     <div
                       ref={containerRef}
                       data-slide-id={slide.id}
@@ -723,9 +672,16 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                         className="absolute inset-0 z-0"
                         style={{
                           background: tempSlide.backgroundImage 
-                            ? `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url(${tempSlide.backgroundImage}) center/cover`
+                            ? (() => {
+                                const themeHex = theme.primary.replace('#', '');
+                                const r = parseInt(themeHex.substr(0, 2), 16);
+                                const g = parseInt(themeHex.substr(2, 2), 16);
+                                const b = parseInt(themeHex.substr(4, 2), 16);
+                                const themeRgba = `rgba(${r}, ${g}, ${b}, ${tempSlide.themeOverlay || 0.3})`;
+                                return `linear-gradient(${themeRgba}, ${themeRgba}), url(${tempSlide.backgroundImage}) center/cover`;
+                              })()
                             : `linear-gradient(135deg, ${theme.primary}15, ${theme.secondary}15)`,
-                          filter: tempSlide.backgroundImage ? `blur(${tempSlide.backgroundBlur || 2}px)` : 'none',
+                          filter: tempSlide.backgroundImage && tempSlide.backgroundBlur ? `blur(${tempSlide.backgroundBlur}px)` : 'none',
                         }}
                       />
 
@@ -736,7 +692,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                           switch (layout) {
                             case 'title-top-content-bottom':
                               return {
-                                container: 'flex-col justify-start items-center',
+                                container: 'flex-col justify-center items-center',
                                 titleAlign: 'text-center',
                                 contentAlign: 'text-center',
                                 titleSize: 'text-4xl',
@@ -811,49 +767,71 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                         
                         return (
                           <div className={`absolute inset-0 z-10 p-8 flex gap-4 ${layoutClasses.container}`}>
-                            <div className={layoutClasses.titleWidth}>
-                              <h1
-                                contentEditable
-                                suppressContentEditableWarning
+                            <div 
+                              className={`${layoutClasses.titleWidth} relative hover:ring-1 hover:ring-blue-300 cursor-pointer`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedElementId('slide-title');
+                              }}
+                            >
+                        <h1
+                          contentEditable
+                          suppressContentEditableWarning
                                 className={`${layoutClasses.titleSize} font-bold ${layoutClasses.titleAlign} mb-4 outline-none cursor-text hover:bg-blue-100 hover:bg-opacity-50 p-2 rounded transition-colors`}
-                                style={{
-                                  color: tempSlide.backgroundImage ? '#FFFFFF' : theme.primary,
-                                  textShadow: tempSlide.backgroundImage ? '2px 2px 4px rgba(0,0,0,0.8)' : 'none',
-                                }}
-                                onBlur={(e) => handleSlideTextEdit('title', e.target.textContent || '')}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter' && !e.shiftKey) {
-                                    e.preventDefault();
-                                    e.currentTarget.blur();
-                                  }
-                                }}
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                {tempSlide.title}
-                              </h1>
+                          style={{
+                            color: tempSlide.backgroundImage ? '#FFFFFF' : theme.primary,
+                            textShadow: tempSlide.backgroundImage ? '2px 2px 4px rgba(0,0,0,0.8)' : 'none',
+                          }}
+                          onBlur={(e) => handleSlideTextEdit('title', e.target.textContent || '')}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              e.currentTarget.blur();
+                            }
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {tempSlide.title}
+                        </h1>
+                              {selectedElementId === 'slide-title' && (
+                                <div className="absolute -top-2 -right-2 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
+                                  <div className="w-2 h-2 bg-white rounded-full"></div>
+                                </div>
+                              )}
                             </div>
                             
                             {layout !== 'title-only' && (
-                              <div className={layoutClasses.contentWidth}>
-                                <div
-                                  contentEditable
-                                  suppressContentEditableWarning
+                              <div 
+                                className={`${layoutClasses.contentWidth} relative hover:ring-1 hover:ring-blue-300 cursor-pointer`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedElementId('slide-content');
+                                }}
+                              >
+                        <div
+                          contentEditable
+                          suppressContentEditableWarning
                                   className={`${layoutClasses.contentSize} ${layoutClasses.contentAlign} outline-none cursor-text hover:bg-green-100 hover:bg-opacity-50 p-2 rounded transition-colors`}
-                                  style={{
-                                    color: tempSlide.backgroundImage ? '#F0F0F0' : theme.secondary,
-                                    textShadow: tempSlide.backgroundImage ? '1px 1px 2px rgba(0,0,0,0.7)' : 'none',
-                                  }}
-                                  onBlur={(e) => handleSlideTextEdit('content', e.target.textContent || '')}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter' && !e.shiftKey) {
-                                      e.preventDefault();
-                                      e.currentTarget.blur();
-                                    }
-                                  }}
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  {tempSlide.content}
-                                </div>
+                          style={{
+                            color: tempSlide.backgroundImage ? '#F0F0F0' : theme.secondary,
+                            textShadow: tempSlide.backgroundImage ? '1px 1px 2px rgba(0,0,0,0.7)' : 'none',
+                          }}
+                          onBlur={(e) => handleSlideTextEdit('content', e.target.textContent || '')}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              e.currentTarget.blur();
+                            }
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {tempSlide.content}
+                        </div>
+                                {selectedElementId === 'slide-content' && (
+                                  <div className="absolute -top-2 -right-2 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
+                                    <div className="w-2 h-2 bg-white rounded-full"></div>
+                      </div>
+                                )}
                               </div>
                             )}
                           </div>
@@ -1009,8 +987,8 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                       <div className="mt-3 bg-gray-50 p-3 rounded-lg border">
                         <div className="flex items-center justify-between mb-2">
                           <h4 className="text-sm font-semibold text-gray-800">
-                            {selectedElement.type === 'text' ? '📝 텍스트 속성' : '🖼️ 이미지 속성'}
-                          </h4>
+                          {selectedElement.type === 'text' ? '📝 텍스트 속성' : '🖼️ 이미지 속성'}
+                        </h4>
                           <button
                             onClick={() => setSelectedElementId(undefined)}
                             className="text-xs text-gray-500 hover:text-gray-700"
@@ -1026,14 +1004,14 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                               <div>
                                 <label className="block text-xs font-medium text-gray-600 mb-1">크기</label>
                                 <div className="flex items-center gap-1">
-                                  <input
-                                    type="range"
-                                    min="12"
-                                    max="72"
-                                    value={selectedElement.fontSize}
-                                    onChange={(e) => updateElement(selectedElement.id, { fontSize: parseInt(e.target.value) })}
+                                <input
+                                  type="range"
+                                  min="12"
+                                  max="72"
+                                  value={selectedElement.fontSize}
+                                  onChange={(e) => updateElement(selectedElement.id, { fontSize: parseInt(e.target.value) })}
                                     className="flex-1"
-                                  />
+                                />
                                   <span className="text-xs text-gray-500 w-8">{selectedElement.fontSize}</span>
                                 </div>
                               </div>
@@ -1080,28 +1058,28 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                   <option value="bold">굵게</option>
                                   <option value="bolder">더 굵게</option>
                                 </select>
-                              </div>
-                              
-                              <div>
+                            </div>
+
+                            <div>
                                 <label className="block text-xs font-medium text-gray-600 mb-1">정렬</label>
                                 <div className="flex gap-1">
-                                  {(['left', 'center', 'right'] as const).map((align) => (
-                                    <button
-                                      key={align}
-                                      onClick={() => updateElement(selectedElement.id, { textAlign: align })}
+                                {(['left', 'center', 'right'] as const).map((align) => (
+                                  <button
+                                    key={align}
+                                    onClick={() => updateElement(selectedElement.id, { textAlign: align })}
                                       className={`p-1 rounded text-xs ${
-                                        selectedElement.textAlign === align
-                                          ? 'bg-blue-500 text-white'
-                                          : 'bg-gray-200 hover:bg-gray-300'
-                                      }`}
-                                    >
+                                      selectedElement.textAlign === align
+                                        ? 'bg-blue-500 text-white'
+                                        : 'bg-gray-200 hover:bg-gray-300'
+                                    }`}
+                                  >
                                       {align === 'left' && <AlignLeft className="w-3 h-3" />}
                                       {align === 'center' && <AlignCenter className="w-3 h-3" />}
                                       {align === 'right' && <AlignRight className="w-3 h-3" />}
-                                    </button>
-                                  ))}
-                                </div>
+                                  </button>
+                                ))}
                               </div>
+                            </div>
                             </div>
 
                             {/* 위치 및 크기 */}
@@ -1199,6 +1177,274 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                         )}
                       </div>
                     )}
+                        </div>
+                      </div>
+
+                      {/* 오른쪽 컨트롤 패널 - 우측 1/3 */}
+                      <div className="space-y-4">
+                        {/* 슬라이드 템플릿 선택 */}
+                        <SlideTemplateSelector
+                          currentTemplate={tempSlide.slideLayout || 'title-top-content-bottom'}
+                          onTemplateChange={handleTemplateChange}
+                        />
+
+                        {/* 배경 이미지 컨트롤 */}
+                        <BackgroundController
+                          currentSeed={tempSlide.backgroundSeed || 'default'}
+                          blur={tempSlide.backgroundBlur || 2}
+                          grayscale={tempSlide.backgroundGrayscale || false}
+                          width={aspectRatio.width}
+                          height={aspectRatio.height}
+                          onSeedChange={handleBackgroundSeedChange}
+                          onBlurChange={handleBackgroundBlurChange}
+                          onGrayscaleChange={handleBackgroundGrayscaleChange}
+                        />
+
+                        {/* 요소 추가 버튼 */}
+                        <div className="bg-white rounded-lg border p-3 space-y-3">
+                          <h4 className="text-sm font-semibold text-gray-800">요소 추가</h4>
+                          <div className="space-y-2">
+                            <button
+                              onClick={() => addNewElement('text')}
+                              className="w-full flex items-center gap-2 px-3 py-2 text-sm bg-green-600 text-white hover:bg-green-700 rounded-lg transition-colors"
+                            >
+                              <Plus className="w-4 h-4" />
+                              텍스트 추가
+                            </button>
+                            <button
+                              onClick={() => handleImageUpload()}
+                              className="w-full flex items-center gap-2 px-3 py-2 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors"
+                            >
+                              <ImageIcon className="w-4 h-4" />
+                              이미지 추가
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* 배치 버튼 */}
+                        <div className="bg-white rounded-lg border p-3 space-y-3">
+                          <h4 className="text-sm font-semibold text-gray-800">요소 배치</h4>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => applyLayoutTemplate('left')}
+                              className="flex-1 px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded"
+                              title="좌측 정렬"
+                            >
+                              <AlignLeft className="w-3 h-3 mx-auto" />
+                            </button>
+                            <button
+                              onClick={() => applyLayoutTemplate('center')}
+                              className="flex-1 px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded"
+                              title="가운데 정렬"
+                            >
+                              <AlignCenter className="w-3 h-3 mx-auto" />
+                            </button>
+                            <button
+                              onClick={() => applyLayoutTemplate('right')}
+                              className="flex-1 px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded"
+                              title="우측 정렬"
+                            >
+                              <AlignRight className="w-3 h-3 mx-auto" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* 선택된 요소의 속성 패널 */}
+                        {selectedElement && (
+                          <div className="bg-white rounded-lg border p-3 space-y-3">
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="text-sm font-semibold text-gray-800">
+                                {selectedElement.type === 'text' ? '📝 텍스트 속성' : '🖼️ 이미지 속성'}
+                              </h4>
+                              <button
+                                onClick={() => setSelectedElementId(undefined)}
+                                className="text-xs text-gray-500 hover:text-gray-700"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                            
+                            {selectedElement.type === 'text' && (
+                              <div className="space-y-2">
+                                <div className="grid grid-cols-3 gap-2">
+                                  {/* 글자 크기 */}
+                            <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">크기</label>
+                                    <div className="flex items-center gap-1">
+                              <input
+                                        type="range"
+                                        min="12"
+                                        max="72"
+                                        value={selectedElement.fontSize}
+                                        onChange={(e) => updateElement(selectedElement.id, { fontSize: parseInt(e.target.value) })}
+                                        className="flex-1"
+                                      />
+                                      <span className="text-xs text-gray-500 w-8">{selectedElement.fontSize}</span>
+                                    </div>
+                            </div>
+
+                                  {/* 글꼴 */}
+                            <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">글꼴</label>
+                                    <select
+                                      value={selectedElement.fontFamily}
+                                      onChange={(e) => updateElement(selectedElement.id, { fontFamily: e.target.value })}
+                                      className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
+                                    >
+                                      {FONT_FAMILIES.map((font) => (
+                                        <option key={font} value={font}>
+                                          {font.split(',')[0]}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+
+                                  {/* 글자 색상 */}
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">색상</label>
+                              <input
+                                type="color"
+                                      value={selectedElement.color}
+                                      onChange={(e) => updateElement(selectedElement.id, { color: e.target.value })}
+                                      className="w-full h-6 border border-gray-300 rounded"
+                                    />
+                                  </div>
+                            </div>
+
+                                {/* 텍스트 정렬 및 굵기 */}
+                                <div className="grid grid-cols-2 gap-2">
+                            <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">굵기</label>
+                                    <select
+                                      value={selectedElement.fontWeight}
+                                      onChange={(e) => updateElement(selectedElement.id, { fontWeight: e.target.value })}
+                                      className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
+                                    >
+                                      <option value="normal">보통</option>
+                                      <option value="bold">굵게</option>
+                                      <option value="bolder">더 굵게</option>
+                                    </select>
+                                  </div>
+                                  
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">정렬</label>
+                                    <div className="flex gap-1">
+                                      {(['left', 'center', 'right'] as const).map((align) => (
+                                        <button
+                                          key={align}
+                                          onClick={() => updateElement(selectedElement.id, { textAlign: align })}
+                                          className={`p-1 rounded text-xs ${
+                                            selectedElement.textAlign === align
+                                              ? 'bg-blue-500 text-white'
+                                              : 'bg-gray-200 hover:bg-gray-300'
+                                          }`}
+                                        >
+                                          {align === 'left' && <AlignLeft className="w-3 h-3" />}
+                                          {align === 'center' && <AlignCenter className="w-3 h-3" />}
+                                          {align === 'right' && <AlignRight className="w-3 h-3" />}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* 위치 및 크기 */}
+                                <div className="grid grid-cols-4 gap-1">
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">X</label>
+                              <input
+                                      type="number"
+                                      value={Math.round(selectedElement.x)}
+                                      onChange={(e) => updateElement(selectedElement.id, { x: parseInt(e.target.value) || 0 })}
+                                      className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
+                                    />
+                            </div>
+                            <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">Y</label>
+                              <input
+                                      type="number"
+                                      value={Math.round(selectedElement.y)}
+                                      onChange={(e) => updateElement(selectedElement.id, { y: parseInt(e.target.value) || 0 })}
+                                      className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
+                                    />
+                            </div>
+                            <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">너비</label>
+                              <input
+                                type="number"
+                                      value={Math.round(selectedElement.width)}
+                                      onChange={(e) => updateElement(selectedElement.id, { width: parseInt(e.target.value) || 50 })}
+                                      className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
+                              />
+                            </div>
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">높이</label>
+                                    <input
+                                      type="number"
+                                      value={Math.round(selectedElement.height)}
+                                      onChange={(e) => updateElement(selectedElement.id, { height: parseInt(e.target.value) || 30 })}
+                                      className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
+                                    />
+                          </div>
+                        </div>
+                              </div>
+                            )}
+
+                            {selectedElement.type === 'image' && (
+                              <div className="space-y-2">
+                                <button
+                                  onClick={() => handleImageUpload(selectedElement.id)}
+                                  className="w-full flex items-center justify-center gap-1 px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                                >
+                                  <Upload className="w-3 h-3" />
+                                  이미지 변경
+                                </button>
+
+                        {/* 위치 및 크기 */}
+                                <div className="grid grid-cols-4 gap-1">
+                            <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">X</label>
+                              <input
+                                type="number"
+                                value={Math.round(selectedElement.x)}
+                                onChange={(e) => updateElement(selectedElement.id, { x: parseInt(e.target.value) || 0 })}
+                                      className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
+                              />
+                            </div>
+                            <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">Y</label>
+                              <input
+                                type="number"
+                                value={Math.round(selectedElement.y)}
+                                onChange={(e) => updateElement(selectedElement.id, { y: parseInt(e.target.value) || 0 })}
+                                      className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
+                              />
+                            </div>
+                            <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">너비</label>
+                              <input
+                                type="number"
+                                value={Math.round(selectedElement.width)}
+                                onChange={(e) => updateElement(selectedElement.id, { width: parseInt(e.target.value) || 50 })}
+                                      className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
+                              />
+                            </div>
+                            <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">높이</label>
+                              <input
+                                type="number"
+                                value={Math.round(selectedElement.height)}
+                                onChange={(e) => updateElement(selectedElement.id, { height: parseInt(e.target.value) || 30 })}
+                                      className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                            )}
+                      </div>
+                    )}
+                      </div>
+                    </div>
                   </div>
                 )
               )}
