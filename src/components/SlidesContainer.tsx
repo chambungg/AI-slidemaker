@@ -4,13 +4,13 @@ import { SlidePreview } from './SlidePreview';
 import { BackgroundController } from './BackgroundController';
 import { SlideTemplateSelector, SlideLayoutType } from './SlideTemplateSelector';
 import { SlideOrderController } from './SlideOrderController';
-import { TRANSLATIONS, FONT_FAMILIES, ANIMATION_EFFECTS } from '../constants';
+import { TRANSLATIONS } from '../constants';
 import { generateSlideHTML } from '../utils/slideGenerator';
 import { generatePicsumImage } from '../utils/imageSearch';
-import { 
-  Plus, 
-  AlignLeft, 
-  AlignCenter, 
+import {
+  Plus,
+  AlignLeft,
+  AlignCenter,
   AlignRight,
   Trash2,
   Save,
@@ -25,22 +25,22 @@ import {
   X
 } from 'lucide-react';
 
-// 폰트 패밀리 옵션
 const FONT_FAMILIES = [
-  'Arial, sans-serif',
-  'Helvetica, sans-serif',
-  'Times New Roman, serif',
-  'Georgia, serif',
-  'Verdana, sans-serif',
-  'Courier New, monospace',
-  'Trebuchet MS, sans-serif',
-  'Impact, sans-serif',
-  'Comic Sans MS, cursive',
-  'Palatino, serif'
+  "Arial, sans-serif",
+  "Helvetica, sans-serif",
+  "Times New Roman, serif",
+  "Georgia, serif",
+  "Courier New, monospace",
+  "Verdana, sans-serif",
+  "Garamond, serif",
+  "Comic Sans MS, cursive",
+  "Trebuchet MS, sans-serif",
+  "Impact, fantasy",
 ];
 
 // 간단한 마크다운 렌더러 (미리보기용)
 const renderMarkdownPreview = (text: string): string => {
+  if (!text) return '';
   return text
     // 헤딩 처리
     .replace(/### (.*?)$/gm, '<span style="font-size: 1.2em; font-weight: bold;">$1</span>')
@@ -128,7 +128,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
     if (!tempSlide) return;
 
     // tempSlide가 변경될 때마다 즉시 HTML 업데이트
-    const finalBackgroundImage = tempSlide.backgroundSeed 
+    const finalBackgroundImage = tempSlide.backgroundSeed
       ? generatePicsumImage(
           aspectRatio.width,
           aspectRatio.height,
@@ -170,7 +170,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
         ...tempSlide,
         elements: tempSlide.elements || [],
       };
-      
+
       onSlideUpdate(updatedSlide);
       setHasUnsavedChanges(false);
     }, 300); // 300ms 디바운스로 단축
@@ -182,7 +182,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
   const updateElement = useCallback((elementId: string, updates: Partial<SlideElement>) => {
     if (!tempSlide) return;
 
-    const updatedElements = tempSlide.elements?.map(el => 
+    const updatedElements = tempSlide.elements?.map(el =>
       el.id === elementId ? { ...el, ...updates } : el
     ) || [];
 
@@ -297,7 +297,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
 
   const handleSlideTextEdit = (field: 'title' | 'content', newContent: string) => {
     if (!tempSlide) return;
-    
+
     setTempSlide(prev => prev ? {
       ...prev,
       [field]: newContent,
@@ -313,7 +313,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
           const reader = new FileReader();
           reader.onload = (e) => {
             const imageUrl = e.target?.result as string;
-            
+
             if (elementId) {
               // 기존 요소 업데이트
               updateElement(elementId, { content: imageUrl });
@@ -359,7 +359,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
           const reader = new FileReader();
           reader.onload = (e) => {
             const imageUrl = e.target?.result as string;
-            
+
             // 배경 이미지 설정 (자동 블러 효과 적용)
             const updatedSlide = {
               ...tempSlide,
@@ -368,7 +368,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
               backgroundSeed: undefined, // picsum 시드 제거
               backgroundGrayscale: false, // 그레이스케일 비활성화
             };
-            
+
             setTempSlide(updatedSlide);
             setHasUnsavedChanges(true);
           };
@@ -383,19 +383,19 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
     e.preventDefault();
     const files = Array.from(e.dataTransfer.files);
     const imageFile = files.find(file => file.type.startsWith('image/'));
-    
+
     if (imageFile) {
       const reader = new FileReader();
       reader.onload = (e) => {
         const imageUrl = e.target?.result as string;
-        
+
         const rect = containerRef.current?.getBoundingClientRect();
         if (rect) {
-          const x = e.dataTransfer.dropEffect === 'copy' ? 
+          const x = e.dataTransfer.dropEffect === 'copy' ?
             Math.max(0, e.clientX - rect.left - 75) : 100;
-          const y = e.dataTransfer.dropEffect === 'copy' ? 
+          const y = e.dataTransfer.dropEffect === 'copy' ?
             Math.max(0, e.clientY - rect.top - 50) : 100;
-          
+
           const newElement: SlideElement = {
             id: `element-${Date.now()}`,
             type: 'image',
@@ -430,9 +430,9 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
 
   const handleApplyChanges = () => {
     if (!tempSlide) return;
-    
+
     // 최종 배경 이미지 생성 (블러와 그레이스케일 효과 포함)
-    const finalBackgroundImage = tempSlide.backgroundSeed 
+    const finalBackgroundImage = tempSlide.backgroundSeed
       ? generatePicsumImage(
           aspectRatio.width,
           aspectRatio.height,
@@ -461,10 +461,10 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
       // 추가된 요소들도 포함
       elements: tempSlide.elements || [],
     };
-    
+
     onSlideUpdate(updatedSlide);
     setHasUnsavedChanges(false);
-    
+
     // 편집 모드 종료 시 선택 상태 초기화
     setSelectedElementId(undefined);
     setEditingElement(null);
@@ -473,7 +473,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
   // 배경 이미지 업데이트 함수들
   const handleBackgroundSeedChange = (seed: string) => {
     if (!tempSlide) return;
-    
+
     const newBackgroundImage = generatePicsumImage(
       aspectRatio.width,
       aspectRatio.height,
@@ -481,37 +481,37 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
       tempSlide.backgroundBlur || 2,
       tempSlide.backgroundGrayscale || false
     );
-    
+
     const updatedSlide = {
       ...tempSlide,
       backgroundSeed: seed,
       backgroundImage: newBackgroundImage,
     };
-    
+
     setTempSlide(updatedSlide);
     setHasUnsavedChanges(true);
   };
 
   const handleBackgroundBlurChange = (blur: number) => {
     if (!tempSlide) return;
-    
+
     const updatedSlide = {
       ...tempSlide,
       backgroundBlur: blur,
     };
-    
+
     setTempSlide(updatedSlide);
     setHasUnsavedChanges(true);
   };
 
   const handleBackgroundGrayscaleChange = (grayscale: boolean) => {
     if (!tempSlide) return;
-    
+
     const updatedSlide = {
       ...tempSlide,
       backgroundGrayscale: grayscale,
     };
-    
+
     setTempSlide(updatedSlide);
     setHasUnsavedChanges(true);
   };
@@ -519,7 +519,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
   // 슬라이드 템플릿 변경 핸들러
   const handleTemplateChange = (newTemplate: SlideLayoutType) => {
     if (!tempSlide) return;
-    
+
     const updatedSlide = {
       ...tempSlide,
       slideLayout: newTemplate,
@@ -538,7 +538,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
         tempSlide.themeOverlay || 0.3
       ),
     };
-    
+
     setTempSlide(updatedSlide);
     setHasUnsavedChanges(true);
   };
@@ -546,10 +546,10 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
   const exportSlideAsImage = async (slide: Slide) => {
     try {
       const { default: html2canvas } = await import('html2canvas');
-      
+
       // 실제 슬라이드 컨테이너를 찾아서 캡처
       const slideContainer = document.querySelector(`[data-slide-id="${slide.id}"]`) as HTMLElement;
-      
+
       if (slideContainer) {
         const canvas = await html2canvas(slideContainer, {
           width: slideContainer.offsetWidth,
@@ -606,7 +606,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
 
     const updatedElements = tempSlide.elements.map((element, index) => {
       let x, y;
-      
+
       switch (template) {
         case 'center':
           x = (containerWidth - element.width) / 2;
@@ -666,11 +666,11 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
   const getSlideContainerStyle = () => {
     const maxWidth = 800;
     const maxHeight = 600;
-    
+
     const aspectRatioValue = aspectRatio.width / aspectRatio.height;
-    
+
     let width, height;
-    
+
     if (aspectRatioValue > maxWidth / maxHeight) {
       width = maxWidth;
       height = maxWidth / aspectRatioValue;
@@ -678,7 +678,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
       height = maxHeight;
       width = maxHeight * aspectRatioValue;
     }
-    
+
     return {
       width: `${width}px`,
       height: `${height}px`,
@@ -701,7 +701,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
           {t.addSlide}
         </button>
       </div>
-      
+
       <div className="space-y-6">
         {slides.map((slide, index) => (
           <React.Fragment key={slide.id}>
@@ -726,7 +726,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                   이미지 저장
                 </button>
               </div>
-              
+
               {/* 슬라이드가 선택되지 않았을 때는 일반 미리보기 */}
               {activeSlideId !== slide.id ? (
                 <SlidePreview
@@ -774,7 +774,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                           onClick={() => {
                             // 편집 완료 전에 마지막 변경사항 강제 저장
                             if (tempSlide && hasUnsavedChanges) {
-                              const finalBackgroundImage = tempSlide.backgroundSeed 
+                              const finalBackgroundImage = tempSlide.backgroundSeed
                                 ? generatePicsumImage(
                                     aspectRatio.width,
                                     aspectRatio.height,
@@ -802,10 +802,10 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                 ),
                                 elements: tempSlide.elements || [],
                               };
-                              
+
                               onSlideUpdate(updatedSlide);
                             }
-                            
+
                             // 잠시 후 편집 모드 종료
                             setTimeout(() => {
                               onSlideSelect('');
@@ -838,10 +838,10 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                           onDragOver={handleDragOver}
                         >
                           {/* 기본 슬라이드 배경 */}
-                          <div 
+                          <div
                             className="absolute inset-0 z-0"
                             style={{
-                              background: tempSlide.backgroundImage 
+                              background: tempSlide.backgroundImage
                                 ? (() => {
                                     const themeHex = theme.primary.replace('#', '');
                                     const r = parseInt(themeHex.substr(0, 2), 16);
@@ -932,12 +932,12 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                   };
                               }
                             };
-                            
+
                             const layoutClasses = getLayoutClasses();
-                            
+
                             return (
                               <div className={`absolute inset-0 z-10 p-8 flex gap-4 ${layoutClasses.container}`}>
-                                <div 
+                                <div
                                   className={`${layoutClasses.titleWidth} relative hover:ring-1 hover:ring-blue-300 cursor-pointer`}
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -973,9 +973,9 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                     </div>
                                   )}
                                 </div>
-                                
+
                                 {layout !== 'title-only' && (
-                                  <div 
+                                  <div
                                     className={`${layoutClasses.contentWidth} relative hover:ring-1 hover:ring-blue-300 cursor-pointer`}
                                     onClick={(e) => {
                                       e.stopPropagation();
@@ -1067,7 +1067,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                   >
                                     ×
                                   </button>
-                                  
+
                                   {/* 리사이즈 핸들 */}
                                   <div
                                     className="absolute -bottom-2 -right-2 w-4 h-4 bg-blue-500 rounded-full cursor-se-resize z-30"
@@ -1076,7 +1076,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                       handleMouseDown(e, element.id, 'resize');
                                     }}
                                   />
-                                  
+
                                   {/* 회전 핸들 */}
                                   <div
                                     className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-green-500 rounded-full cursor-pointer z-30"
@@ -1158,7 +1158,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                       />
                                     ) : (
                                       // URL이 아닌 텍스트인 경우 플레이스홀더 표시
-                                      <div 
+                                      <div
                                         className="w-full h-full border-2 border-dashed border-gray-300 rounded flex items-center justify-center bg-gray-50 hover:bg-gray-100 cursor-pointer pointer-events-auto"
                                         onClick={(e) => {
                                           e.stopPropagation();
@@ -1173,7 +1173,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                       </div>
                                     )
                                   ) : (
-                                    <div 
+                                    <div
                                       className="w-full h-full border-2 border-dashed border-gray-300 rounded flex items-center justify-center bg-gray-50 hover:bg-gray-100 cursor-pointer pointer-events-auto"
                                       onClick={(e) => {
                                         e.stopPropagation();
@@ -1188,7 +1188,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                   )}
                                 </div>
                               )}
-                              
+
                               {/* 선택된 요소의 컨트롤 핸들 */}
                               {selectedElementId === element.id && (
                                 <>
@@ -1202,7 +1202,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                   >
                                     <Trash2 className="w-3 h-3" />
                                   </button>
-                                  
+
                                   {/* 크기 조절 핸들 */}
                                   <div
                                     className="absolute -bottom-2 -right-2 w-4 h-4 bg-blue-500 rounded-full cursor-se-resize z-30"
@@ -1323,7 +1323,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                             ✕
                           </button>
                         </div>
-                        
+
                         {/* 우선순위 조절 */}
                                                  <div className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg p-3`}>
                            <label className={`block text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-700'} mb-2`}>우선순위 (z-index)</label>
@@ -1377,7 +1377,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                     >
                                       {FONT_FAMILIES.map((font) => (
                                         <option key={font} value={font}>
-                                          {font.includes(',') ? font.split(',').at(0) : font}
+                                          {font.includes(',') ? font.split(',')[0] : font}
                                         </option>
                                       ))}
                                     </select>
@@ -1409,7 +1409,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                       <option value="bolder">더 굵게</option>
                                     </select>
                                   </div>
-                                  
+
                                   <div>
                                     <label className="block text-xs font-medium text-gray-600 mb-1">정렬</label>
                                     <div className="flex gap-1">
@@ -1483,7 +1483,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                   <Upload className="w-3 h-3" />
                                   이미지 변경
                                 </button>
-                                
+
                                 {/* 위치 및 크기 */}
                                 <div className="grid grid-cols-4 gap-1">
                                   <div>
@@ -1533,7 +1533,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                 )
               )}
             </div>
-            
+
             {index < slides.length - 1 && (
               <div className="flex justify-center">
                 <button
