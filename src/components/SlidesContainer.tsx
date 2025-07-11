@@ -21,7 +21,8 @@ import {
   RotateCw,
   Move,
   Square,
-  Palette
+  Palette,
+  X
 } from 'lucide-react';
 
 // 폰트 패밀리 옵션
