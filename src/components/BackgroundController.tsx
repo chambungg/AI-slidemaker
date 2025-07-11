@@ -271,7 +271,6 @@ export const BackgroundController: React.FC<BackgroundControllerProps> = ({
       <div className="text-xs text-gray-400 truncate">
         시드: {currentSeed}
       </div>
-      </div>
     </div>
   );
 }; 
