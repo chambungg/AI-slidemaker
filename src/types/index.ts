@@ -9,6 +9,9 @@ export interface Slide {
   backgroundImage?: string;
   backgroundBlur?: number;
   themeOverlay?: number;
+  backgroundSeed?: string;
+  backgroundGrayscale?: boolean;
+  slideLayout?: 'title-top-content-bottom' | 'title-left-content-right' | 'title-right-content-left' | 'title-only' | 'title-small-top-left' | 'title-small-top-right';
   elements?: SlideElement[];
   history?: SlideState[];
   historyIndex?: number;

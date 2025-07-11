@@ -1,8 +1,11 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Slide, Theme, AspectRatio, SlideElement } from '../types';
 import { SlidePreview } from './SlidePreview';
+import { BackgroundController } from './BackgroundController';
+import { SlideTemplateSelector, SlideLayoutType } from './SlideTemplateSelector';
 import { TRANSLATIONS, FONT_FAMILIES, ANIMATION_EFFECTS } from '../constants';
 import { generateSlideHTML } from '../utils/slideGenerator';
+import { generatePicsumImage } from '../utils/imageSearch';
 import { 
   Plus, 
   AlignLeft, 
@@ -329,15 +332,111 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
         tempSlide.order,
         undefined,
         undefined,
-        tempSlide.template || 'title-center',
+        tempSlide.slideLayout || tempSlide.template || 'title-top-content-bottom',
+        tempSlide.backgroundImage,
+        tempSlide.backgroundBlur || 2,
+        tempSlide.themeOverlay || 0.3
+      ),
+      // 추가된 요소들도 포함
+      elements: tempSlide.elements || [],
+    };
+    
+    onSlideUpdate(updatedSlide);
+    setHasUnsavedChanges(false);
+    
+    // 편집 모드 종료 시 선택 상태 초기화
+    setSelectedElementId(undefined);
+    setEditingElement(null);
+  };
+
+  // 배경 이미지 업데이트 함수들
+  const handleBackgroundSeedChange = (seed: string) => {
+    if (!tempSlide) return;
+    
+    const newBackgroundImage = generatePicsumImage(
+      aspectRatio.width,
+      aspectRatio.height,
+      seed,
+      tempSlide.backgroundBlur || 2,
+      tempSlide.backgroundGrayscale || false
+    );
+    
+    const updatedSlide = {
+      ...tempSlide,
+      backgroundSeed: seed,
+      backgroundImage: newBackgroundImage,
+    };
+    
+    setTempSlide(updatedSlide);
+    setHasUnsavedChanges(true);
+  };
+
+  const handleBackgroundBlurChange = (blur: number) => {
+    if (!tempSlide) return;
+    
+    const newBackgroundImage = generatePicsumImage(
+      aspectRatio.width,
+      aspectRatio.height,
+      tempSlide.backgroundSeed || 'default',
+      blur,
+      tempSlide.backgroundGrayscale || false
+    );
+    
+    const updatedSlide = {
+      ...tempSlide,
+      backgroundBlur: blur,
+      backgroundImage: newBackgroundImage,
+    };
+    
+    setTempSlide(updatedSlide);
+    setHasUnsavedChanges(true);
+  };
+
+  const handleBackgroundGrayscaleChange = (grayscale: boolean) => {
+    if (!tempSlide) return;
+    
+    const newBackgroundImage = generatePicsumImage(
+      aspectRatio.width,
+      aspectRatio.height,
+      tempSlide.backgroundSeed || 'default',
+      tempSlide.backgroundBlur || 2,
+      grayscale
+    );
+    
+    const updatedSlide = {
+      ...tempSlide,
+      backgroundGrayscale: grayscale,
+      backgroundImage: newBackgroundImage,
+    };
+    
+    setTempSlide(updatedSlide);
+    setHasUnsavedChanges(true);
+  };
+
+  // 슬라이드 템플릿 변경 핸들러
+  const handleTemplateChange = (newTemplate: SlideLayoutType) => {
+    if (!tempSlide) return;
+    
+    const updatedSlide = {
+      ...tempSlide,
+      slideLayout: newTemplate,
+      htmlContent: generateSlideHTML(
+        tempSlide.title,
+        tempSlide.content,
+        theme,
+        aspectRatio,
+        tempSlide.order,
+        undefined,
+        undefined,
+        newTemplate,
         tempSlide.backgroundImage,
         tempSlide.backgroundBlur || 2,
         tempSlide.themeOverlay || 0.3
       ),
     };
     
-    onSlideUpdate(updatedSlide);
-    setHasUnsavedChanges(false);
+    setTempSlide(updatedSlide);
+    setHasUnsavedChanges(true);
   };
 
   const exportSlideAsImage = async (slide: Slide) => {
@@ -574,12 +673,33 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                         )}
                         
                         <button
-                          onClick={() => onSlideSelect('')}
+                          onClick={() => {
+                            handleApplyChanges();
+                            onSlideSelect('');
+                          }}
                           className="px-3 py-2 text-sm bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
                         >
                           편집 완료
                         </button>
                       </div>
+                    </div>
+
+                    {/* 슬라이드 템플릿 및 배경 컨트롤 */}
+                    <div className="mb-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      <SlideTemplateSelector
+                        currentTemplate={tempSlide.slideLayout || 'title-top-content-bottom'}
+                        onTemplateChange={handleTemplateChange}
+                      />
+                      <BackgroundController
+                        currentSeed={tempSlide.backgroundSeed || 'default'}
+                        blur={tempSlide.backgroundBlur || 2}
+                        grayscale={tempSlide.backgroundGrayscale || false}
+                        width={aspectRatio.width}
+                        height={aspectRatio.height}
+                        onSeedChange={handleBackgroundSeedChange}
+                        onBlurChange={handleBackgroundBlurChange}
+                        onGrayscaleChange={handleBackgroundGrayscaleChange}
+                      />
                     </div>
 
                     {/* 직접 편집 영역 */}
@@ -609,55 +729,143 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                         }}
                       />
 
-                      {/* 기본 슬라이드 텍스트 (편집 가능) */}
-                      <div className="absolute inset-0 z-10 p-8 flex flex-col justify-center items-center">
-                        <h1
-                          contentEditable
-                          suppressContentEditableWarning
-                          className="text-4xl font-bold text-center mb-4 outline-none cursor-text hover:bg-blue-100 hover:bg-opacity-50 p-2 rounded transition-colors"
-                          style={{
-                            color: tempSlide.backgroundImage ? '#FFFFFF' : theme.primary,
-                            textShadow: tempSlide.backgroundImage ? '2px 2px 4px rgba(0,0,0,0.8)' : 'none',
-                          }}
-                          onBlur={(e) => handleSlideTextEdit('title', e.target.textContent || '')}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                              e.preventDefault();
-                              e.currentTarget.blur();
-                            }
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {tempSlide.title}
-                        </h1>
+                      {/* 기본 슬라이드 텍스트 (편집 가능) - 템플릿에 따라 레이아웃 변경 */}
+                      {(() => {
+                        const layout = tempSlide.slideLayout || 'title-top-content-bottom';
+                        const getLayoutClasses = () => {
+                          switch (layout) {
+                            case 'title-top-content-bottom':
+                              return {
+                                container: 'flex-col justify-start items-center',
+                                titleAlign: 'text-center',
+                                contentAlign: 'text-center',
+                                titleSize: 'text-4xl',
+                                contentSize: 'text-lg',
+                                titleWidth: 'w-full',
+                                contentWidth: 'w-full'
+                              };
+                            case 'title-left-content-right':
+                              return {
+                                container: 'flex-row justify-center items-center',
+                                titleAlign: 'text-left',
+                                contentAlign: 'text-left',
+                                titleSize: 'text-3xl',
+                                contentSize: 'text-base',
+                                titleWidth: 'w-2/5',
+                                contentWidth: 'w-2/5'
+                              };
+                            case 'title-right-content-left':
+                              return {
+                                container: 'flex-row-reverse justify-center items-center',
+                                titleAlign: 'text-right',
+                                contentAlign: 'text-left',
+                                titleSize: 'text-3xl',
+                                contentSize: 'text-base',
+                                titleWidth: 'w-2/5',
+                                contentWidth: 'w-2/5'
+                              };
+                            case 'title-only':
+                              return {
+                                container: 'flex-col justify-center items-center',
+                                titleAlign: 'text-center',
+                                contentAlign: 'text-center',
+                                titleSize: 'text-5xl',
+                                contentSize: 'text-lg',
+                                titleWidth: 'w-full',
+                                contentWidth: 'w-0'
+                              };
+                            case 'title-small-top-left':
+                              return {
+                                container: 'flex-col justify-start items-start',
+                                titleAlign: 'text-left',
+                                contentAlign: 'text-left',
+                                titleSize: 'text-2xl',
+                                contentSize: 'text-xl',
+                                titleWidth: 'w-full',
+                                contentWidth: 'w-full'
+                              };
+                            case 'title-small-top-right':
+                              return {
+                                container: 'flex-col justify-start items-end',
+                                titleAlign: 'text-right',
+                                contentAlign: 'text-left',
+                                titleSize: 'text-2xl',
+                                contentSize: 'text-xl',
+                                titleWidth: 'w-full',
+                                contentWidth: 'w-full'
+                              };
+                            default:
+                              return {
+                                container: 'flex-col justify-center items-center',
+                                titleAlign: 'text-center',
+                                contentAlign: 'text-center',
+                                titleSize: 'text-4xl',
+                                contentSize: 'text-lg',
+                                titleWidth: 'w-full',
+                                contentWidth: 'w-full'
+                              };
+                          }
+                        };
                         
-                        <div
-                          contentEditable
-                          suppressContentEditableWarning
-                          className="text-lg text-center outline-none cursor-text hover:bg-green-100 hover:bg-opacity-50 p-2 rounded transition-colors"
-                          style={{
-                            color: tempSlide.backgroundImage ? '#F0F0F0' : theme.secondary,
-                            textShadow: tempSlide.backgroundImage ? '1px 1px 2px rgba(0,0,0,0.7)' : 'none',
-                          }}
-                          onBlur={(e) => handleSlideTextEdit('content', e.target.textContent || '')}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                              e.preventDefault();
-                              e.currentTarget.blur();
-                            }
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {tempSlide.content}
-                        </div>
-                      </div>
+                        const layoutClasses = getLayoutClasses();
+                        
+                        return (
+                          <div className={`absolute inset-0 z-10 p-8 flex gap-4 ${layoutClasses.container}`}>
+                            <div className={layoutClasses.titleWidth}>
+                              <h1
+                                contentEditable
+                                suppressContentEditableWarning
+                                className={`${layoutClasses.titleSize} font-bold ${layoutClasses.titleAlign} mb-4 outline-none cursor-text hover:bg-blue-100 hover:bg-opacity-50 p-2 rounded transition-colors`}
+                                style={{
+                                  color: tempSlide.backgroundImage ? '#FFFFFF' : theme.primary,
+                                  textShadow: tempSlide.backgroundImage ? '2px 2px 4px rgba(0,0,0,0.8)' : 'none',
+                                }}
+                                onBlur={(e) => handleSlideTextEdit('title', e.target.textContent || '')}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    e.currentTarget.blur();
+                                  }
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {tempSlide.title}
+                              </h1>
+                            </div>
+                            
+                            {layout !== 'title-only' && (
+                              <div className={layoutClasses.contentWidth}>
+                                <div
+                                  contentEditable
+                                  suppressContentEditableWarning
+                                  className={`${layoutClasses.contentSize} ${layoutClasses.contentAlign} outline-none cursor-text hover:bg-green-100 hover:bg-opacity-50 p-2 rounded transition-colors`}
+                                  style={{
+                                    color: tempSlide.backgroundImage ? '#F0F0F0' : theme.secondary,
+                                    textShadow: tempSlide.backgroundImage ? '1px 1px 2px rgba(0,0,0,0.7)' : 'none',
+                                  }}
+                                  onBlur={(e) => handleSlideTextEdit('content', e.target.textContent || '')}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                      e.preventDefault();
+                                      e.currentTarget.blur();
+                                    }
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {tempSlide.content}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
 
                       {/* 추가된 요소들 */}
                       {tempSlide.elements?.map((element) => (
                         <div
                           key={element.id}
                           className={`absolute group z-20 ${
-                            selectedElementId === element.id ? 'ring-2 ring-blue-500' : ''
+                            selectedElementId === element.id ? 'ring-2 ring-blue-500 ring-offset-1' : 'hover:ring-1 hover:ring-blue-300'
                           }`}
                           style={{
                             left: element.x,
@@ -669,8 +877,13 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                             backgroundColor: element.backgroundColor || 'transparent',
                             border: `${element.borderWidth || 0}px solid ${element.borderColor || 'transparent'}`,
                             zIndex: element.zIndex || 1,
+                            minWidth: '20px',
+                            minHeight: '20px',
                           }}
-                          onMouseDown={(e) => handleMouseDown(e, element.id, 'move')}
+                          onMouseDown={(e) => {
+                            e.stopPropagation();
+                            handleMouseDown(e, element.id, 'move');
+                          }}
                           onClick={(e) => {
                             e.stopPropagation();
                             setSelectedElementId(element.id);
@@ -733,19 +946,20 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                               </div>
                             )
                           ) : (
-                            <div className="w-full h-full relative">
+                            <div className="w-full h-full relative pointer-events-none">
                               {element.content ? (
                                 <img
                                   src={element.content}
                                   alt="Slide element"
-                                  className="w-full h-full object-cover rounded"
+                                  className="w-full h-full object-cover rounded pointer-events-none"
                                   style={{
                                     border: selectedElementId === element.id ? '2px solid #3B82F6' : '1px solid #E5E7EB',
                                   }}
+                                  draggable={false}
                                 />
                               ) : (
                                 <div 
-                                  className="w-full h-full border-2 border-dashed border-gray-300 rounded flex items-center justify-center bg-gray-50 hover:bg-gray-100 cursor-pointer"
+                                  className="w-full h-full border-2 border-dashed border-gray-300 rounded flex items-center justify-center bg-gray-50 hover:bg-gray-100 cursor-pointer pointer-events-auto"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleImageUpload(element.id);
@@ -790,41 +1004,47 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                       </div>
                     </div>
 
-                    {/* 선택된 요소의 속성 패널 */}
+                    {/* 선택된 요소의 속성 패널 - 컴팩트 버전 */}
                     {selectedElement && (
-                      <div className="mt-4 bg-gray-50 p-4 rounded-lg border space-y-4">
-                        <h4 className="font-semibold text-gray-800">
-                          {selectedElement.type === 'text' ? '📝 텍스트 속성' : '🖼️ 이미지 속성'}
-                        </h4>
+                      <div className="mt-3 bg-gray-50 p-3 rounded-lg border">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="text-sm font-semibold text-gray-800">
+                            {selectedElement.type === 'text' ? '📝 텍스트 속성' : '🖼️ 이미지 속성'}
+                          </h4>
+                          <button
+                            onClick={() => setSelectedElementId(undefined)}
+                            className="text-xs text-gray-500 hover:text-gray-700"
+                          >
+                            ✕
+                          </button>
+                        </div>
                         
                         {selectedElement.type === 'text' && (
-                          <>
-                            <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <div className="grid grid-cols-3 gap-2">
                               {/* 글자 크기 */}
                               <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                  글자 크기
-                                </label>
-                                <input
-                                  type="range"
-                                  min="12"
-                                  max="72"
-                                  value={selectedElement.fontSize}
-                                  onChange={(e) => updateElement(selectedElement.id, { fontSize: parseInt(e.target.value) })}
-                                  className="w-full"
-                                />
-                                <span className="text-xs text-gray-500">{selectedElement.fontSize}px</span>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">크기</label>
+                                <div className="flex items-center gap-1">
+                                  <input
+                                    type="range"
+                                    min="12"
+                                    max="72"
+                                    value={selectedElement.fontSize}
+                                    onChange={(e) => updateElement(selectedElement.id, { fontSize: parseInt(e.target.value) })}
+                                    className="flex-1"
+                                  />
+                                  <span className="text-xs text-gray-500 w-8">{selectedElement.fontSize}</span>
+                                </div>
                               </div>
 
                               {/* 글꼴 */}
                               <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                  글꼴
-                                </label>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">글꼴</label>
                                 <select
                                   value={selectedElement.fontFamily}
                                   onChange={(e) => updateElement(selectedElement.id, { fontFamily: e.target.value })}
-                                  className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                                  className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
                                 >
                                   {FONT_FAMILIES.map((font) => (
                                     <option key={font} value={font}>
@@ -836,201 +1056,146 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
 
                               {/* 글자 색상 */}
                               <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                  글자 색상
-                                </label>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">색상</label>
                                 <input
                                   type="color"
                                   value={selectedElement.color}
                                   onChange={(e) => updateElement(selectedElement.id, { color: e.target.value })}
-                                  className="w-full h-8 border border-gray-300 rounded"
+                                  className="w-full h-6 border border-gray-300 rounded"
                                 />
                               </div>
 
-                              {/* 글자 굵기 */}
+                            </div>
+
+                            {/* 텍스트 정렬 및 굵기 */}
+                            <div className="grid grid-cols-2 gap-2">
                               <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                  글자 굵기
-                                </label>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">굵기</label>
                                 <select
                                   value={selectedElement.fontWeight}
                                   onChange={(e) => updateElement(selectedElement.id, { fontWeight: e.target.value })}
-                                  className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                                  className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
                                 >
                                   <option value="normal">보통</option>
                                   <option value="bold">굵게</option>
                                   <option value="bolder">더 굵게</option>
                                 </select>
                               </div>
-                            </div>
-
-                            {/* 텍스트 정렬 */}
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2">
-                                정렬
-                              </label>
-                              <div className="flex gap-2">
-                                {(['left', 'center', 'right'] as const).map((align) => (
-                                  <button
-                                    key={align}
-                                    onClick={() => updateElement(selectedElement.id, { textAlign: align })}
-                                    className={`p-2 rounded ${
-                                      selectedElement.textAlign === align
-                                        ? 'bg-blue-500 text-white'
-                                        : 'bg-gray-200 hover:bg-gray-300'
-                                    }`}
-                                  >
-                                    {align === 'left' && <AlignLeft className="w-4 h-4" />}
-                                    {align === 'center' && <AlignCenter className="w-4 h-4" />}
-                                    {align === 'right' && <AlignRight className="w-4 h-4" />}
-                                  </button>
-                                ))}
+                              
+                              <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">정렬</label>
+                                <div className="flex gap-1">
+                                  {(['left', 'center', 'right'] as const).map((align) => (
+                                    <button
+                                      key={align}
+                                      onClick={() => updateElement(selectedElement.id, { textAlign: align })}
+                                      className={`p-1 rounded text-xs ${
+                                        selectedElement.textAlign === align
+                                          ? 'bg-blue-500 text-white'
+                                          : 'bg-gray-200 hover:bg-gray-300'
+                                      }`}
+                                    >
+                                      {align === 'left' && <AlignLeft className="w-3 h-3" />}
+                                      {align === 'center' && <AlignCenter className="w-3 h-3" />}
+                                      {align === 'right' && <AlignRight className="w-3 h-3" />}
+                                    </button>
+                                  ))}
+                                </div>
                               </div>
                             </div>
-                          </>
+
+                            {/* 위치 및 크기 */}
+                            <div className="grid grid-cols-4 gap-1">
+                              <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">X</label>
+                                <input
+                                  type="number"
+                                  value={Math.round(selectedElement.x)}
+                                  onChange={(e) => updateElement(selectedElement.id, { x: parseInt(e.target.value) || 0 })}
+                                  className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">Y</label>
+                                <input
+                                  type="number"
+                                  value={Math.round(selectedElement.y)}
+                                  onChange={(e) => updateElement(selectedElement.id, { y: parseInt(e.target.value) || 0 })}
+                                  className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">너비</label>
+                                <input
+                                  type="number"
+                                  value={Math.round(selectedElement.width)}
+                                  onChange={(e) => updateElement(selectedElement.id, { width: parseInt(e.target.value) || 50 })}
+                                  className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">높이</label>
+                                <input
+                                  type="number"
+                                  value={Math.round(selectedElement.height)}
+                                  onChange={(e) => updateElement(selectedElement.id, { height: parseInt(e.target.value) || 30 })}
+                                  className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
+                                />
+                              </div>
+                            </div>
+                          </div>
                         )}
 
                         {selectedElement.type === 'image' && (
-                          <div className="space-y-3">
+                          <div className="space-y-2">
                             <button
                               onClick={() => handleImageUpload(selectedElement.id)}
-                              className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                              className="w-full flex items-center justify-center gap-1 px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
                             >
-                              <Upload className="w-4 h-4" />
+                              <Upload className="w-3 h-3" />
                               이미지 변경
                             </button>
-                          </div>
-                        )}
-
-                        {/* 객체 속성 */}
-                        <div className="border-t pt-4">
-                          <h5 className="flex items-center gap-2 font-semibold text-gray-800 mb-3">
-                            <Square className="w-4 h-4" />
-                            객체 속성
-                          </h5>
-                          
-                          <div className="grid grid-cols-2 gap-4">
-                            {/* 배경색 */}
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                배경색
-                              </label>
-                              <input
-                                type="color"
-                                value={selectedElement.backgroundColor || '#ffffff'}
-                                onChange={(e) => updateElement(selectedElement.id, { backgroundColor: e.target.value })}
-                                className="w-full h-8 border border-gray-300 rounded"
-                              />
-                            </div>
-
-                            {/* 테두리 색상 */}
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                테두리 색상
-                              </label>
-                              <input
-                                type="color"
-                                value={selectedElement.borderColor || '#000000'}
-                                onChange={(e) => updateElement(selectedElement.id, { borderColor: e.target.value })}
-                                className="w-full h-8 border border-gray-300 rounded"
-                              />
-                            </div>
-
-                            {/* 테두리 두께 */}
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                테두리 두께
-                              </label>
-                              <input
-                                type="range"
-                                min="0"
-                                max="10"
-                                value={selectedElement.borderWidth || 0}
-                                onChange={(e) => updateElement(selectedElement.id, { borderWidth: parseInt(e.target.value) })}
-                                className="w-full"
-                              />
-                              <span className="text-xs text-gray-500">{selectedElement.borderWidth || 0}px</span>
-                            </div>
-
-                            {/* 회전 */}
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                <RotateCw className="w-3 h-3 inline mr-1" />
-                                회전
-                              </label>
-                              <input
-                                type="range"
-                                min="0"
-                                max="360"
-                                value={selectedElement.rotation || 0}
-                                onChange={(e) => updateElement(selectedElement.id, { rotation: parseInt(e.target.value) })}
-                                className="w-full"
-                              />
-                              <span className="text-xs text-gray-500">{selectedElement.rotation || 0}°</span>
-                            </div>
-
-                            {/* Z-Index */}
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                우선순위
-                              </label>
-                              <input
-                                type="number"
-                                min="0"
-                                max="100"
-                                value={selectedElement.zIndex || 1}
-                                onChange={(e) => updateElement(selectedElement.id, { zIndex: parseInt(e.target.value) || 1 })}
-                                className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                              />
+                            
+                            {/* 위치 및 크기 */}
+                            <div className="grid grid-cols-4 gap-1">
+                              <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">X</label>
+                                <input
+                                  type="number"
+                                  value={Math.round(selectedElement.x)}
+                                  onChange={(e) => updateElement(selectedElement.id, { x: parseInt(e.target.value) || 0 })}
+                                  className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">Y</label>
+                                <input
+                                  type="number"
+                                  value={Math.round(selectedElement.y)}
+                                  onChange={(e) => updateElement(selectedElement.id, { y: parseInt(e.target.value) || 0 })}
+                                  className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">너비</label>
+                                <input
+                                  type="number"
+                                  value={Math.round(selectedElement.width)}
+                                  onChange={(e) => updateElement(selectedElement.id, { width: parseInt(e.target.value) || 50 })}
+                                  className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">높이</label>
+                                <input
+                                  type="number"
+                                  value={Math.round(selectedElement.height)}
+                                  onChange={(e) => updateElement(selectedElement.id, { height: parseInt(e.target.value) || 30 })}
+                                  className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
+                                />
+                              </div>
                             </div>
                           </div>
-                        </div>
-
-                        {/* 위치 및 크기 */}
-                        <div className="border-t pt-4">
-                          <h5 className="flex items-center gap-2 font-semibold text-gray-800 mb-3">
-                            <Move className="w-4 h-4" />
-                            위치 및 크기
-                          </h5>
-                          <div className="grid grid-cols-4 gap-2">
-                            <div>
-                              <label className="block text-xs font-medium text-gray-700 mb-1">X</label>
-                              <input
-                                type="number"
-                                value={Math.round(selectedElement.x)}
-                                onChange={(e) => updateElement(selectedElement.id, { x: parseInt(e.target.value) || 0 })}
-                                className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-xs font-medium text-gray-700 mb-1">Y</label>
-                              <input
-                                type="number"
-                                value={Math.round(selectedElement.y)}
-                                onChange={(e) => updateElement(selectedElement.id, { y: parseInt(e.target.value) || 0 })}
-                                className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-xs font-medium text-gray-700 mb-1">너비</label>
-                              <input
-                                type="number"
-                                value={Math.round(selectedElement.width)}
-                                onChange={(e) => updateElement(selectedElement.id, { width: parseInt(e.target.value) || 50 })}
-                                className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-xs font-medium text-gray-700 mb-1">높이</label>
-                              <input
-                                type="number"
-                                value={Math.round(selectedElement.height)}
-                                onChange={(e) => updateElement(selectedElement.id, { height: parseInt(e.target.value) || 30 })}
-                                className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
-                              />
-                            </div>
-                          </div>
-                        </div>
                       </div>
                     )}
                   </div>

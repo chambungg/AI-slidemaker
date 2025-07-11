@@ -1,7 +1,7 @@
 import { Slide, Theme, AspectRatio } from '../types';
 import { generateSlidesWithGemini, updateSlideWithGemini } from './geminiApi';
 import { SlideType } from '../components/SlideTypeSelector';
-import { getBackgroundForContent } from './imageSearch';
+import { getBackgroundForContent, createDefaultBackgroundOptions, generatePicsumImage } from './imageSearch';
 
 const SLIDE_LAYOUTS = [
   'title-center',
@@ -25,7 +25,14 @@ export const generateSlides = async (
     
     const slides: Slide[] = slideData.map((slide, index) => {
       const layout = getLayoutForSlideType(slideType, index);
-      const backgroundImage = getBackgroundForContent(slide.content);
+      const backgroundOptions = createDefaultBackgroundOptions(slide.content);
+      const backgroundImage = generatePicsumImage(
+        aspectRatio.width,
+        aspectRatio.height,
+        backgroundOptions.seed,
+        backgroundOptions.blur,
+        backgroundOptions.grayscale
+      );
       
       const htmlContent = generateSlideHTML(
         slide.title, 
@@ -37,7 +44,7 @@ export const generateSlides = async (
         slide.bulletPoints,
         layout,
         backgroundImage,
-        2, // 기본 흐림 효과
+        backgroundOptions.blur,
         0.3 // 기본 오버레이
       );
       
@@ -49,7 +56,10 @@ export const generateSlides = async (
         order: index,
         template: layout,
         backgroundImage,
-        backgroundBlur: 2,
+        backgroundBlur: backgroundOptions.blur,
+        backgroundSeed: backgroundOptions.seed,
+        backgroundGrayscale: backgroundOptions.grayscale,
+        slideLayout: 'title-top-content-bottom',
         themeOverlay: 0.3,
         elements: [],
         history: [],
@@ -228,6 +238,84 @@ export const generateSlideHTML = (
 
   const getLayoutStyles = () => {
     switch (layout) {
+      case 'title-top-content-bottom':
+        return {
+          container: 'justify-start items-center',
+          titlePosition: 'text-center',
+          contentPosition: 'text-center',
+          flexDirection: 'flex-col',
+          titleWidth: '100%',
+          contentWidth: '100%',
+          gap: '2rem',
+          padding: '2rem',
+          titleSize: fontSizes.title,
+          contentSize: fontSizes.content
+        };
+      case 'title-left-content-right':
+        return {
+          container: 'justify-center items-center',
+          titlePosition: 'text-left',
+          contentPosition: 'text-left',
+          flexDirection: 'flex-row',
+          titleWidth: '45%',
+          contentWidth: '50%',
+          gap: '5%',
+          padding: '2rem',
+          titleSize: fontSizes.title,
+          contentSize: fontSizes.content
+        };
+      case 'title-right-content-left':
+        return {
+          container: 'justify-center items-center',
+          titlePosition: 'text-right',
+          contentPosition: 'text-left',
+          flexDirection: 'flex-row-reverse',
+          titleWidth: '45%',
+          contentWidth: '50%',
+          gap: '5%',
+          padding: '2rem',
+          titleSize: fontSizes.title,
+          contentSize: fontSizes.content
+        };
+      case 'title-only':
+        return {
+          container: 'justify-center items-center',
+          titlePosition: 'text-center',
+          contentPosition: 'text-center',
+          flexDirection: 'flex-col',
+          titleWidth: '100%',
+          contentWidth: '0%',
+          gap: '0',
+          padding: '2rem',
+          titleSize: fontSizes.title * 1.3,
+          contentSize: 0
+        };
+      case 'title-small-top-left':
+        return {
+          container: 'justify-start items-start',
+          titlePosition: 'text-left',
+          contentPosition: 'text-left',
+          flexDirection: 'flex-col',
+          titleWidth: '100%',
+          contentWidth: '100%',
+          gap: '1.5rem',
+          padding: '2rem',
+          titleSize: fontSizes.title * 0.6,
+          contentSize: fontSizes.content * 1.2
+        };
+      case 'title-small-top-right':
+        return {
+          container: 'justify-start items-end',
+          titlePosition: 'text-right',
+          contentPosition: 'text-left',
+          flexDirection: 'flex-col',
+          titleWidth: '100%',
+          contentWidth: '100%',
+          gap: '1.5rem',
+          padding: '2rem',
+          titleSize: fontSizes.title * 0.6,
+          contentSize: fontSizes.content * 1.2
+        };
       case 'title-left':
         return {
           container: 'justify-center items-center',
@@ -237,7 +325,9 @@ export const generateSlideHTML = (
           titleWidth: '40%',
           contentWidth: '55%',
           gap: '5%',
-          padding: '2rem'
+          padding: '2rem',
+          titleSize: fontSizes.title,
+          contentSize: fontSizes.content
         };
       case 'title-right':
         return {
@@ -248,7 +338,9 @@ export const generateSlideHTML = (
           titleWidth: '40%',
           contentWidth: '55%',
           gap: '5%',
-          padding: '2rem'
+          padding: '2rem',
+          titleSize: fontSizes.title,
+          contentSize: fontSizes.content
         };
       case 'title-top':
         return {
@@ -259,7 +351,9 @@ export const generateSlideHTML = (
           titleWidth: '100%',
           contentWidth: '100%',
           gap: '1.5rem',
-          padding: '2.5rem 2rem'
+          padding: '2.5rem 2rem',
+          titleSize: fontSizes.title,
+          contentSize: fontSizes.content
         };
       case 'title-bottom':
         return {
@@ -270,7 +364,9 @@ export const generateSlideHTML = (
           titleWidth: '100%',
           contentWidth: '100%',
           gap: '1.5rem',
-          padding: '2.5rem 2rem'
+          padding: '2.5rem 2rem',
+          titleSize: fontSizes.title,
+          contentSize: fontSizes.content
         };
       case 'split-content':
         return {
@@ -281,7 +377,9 @@ export const generateSlideHTML = (
           titleWidth: '45%',
           contentWidth: '45%',
           gap: '10%',
-          padding: '2rem'
+          padding: '2rem',
+          titleSize: fontSizes.title,
+          contentSize: fontSizes.content
         };
       default: // title-center
         return {
@@ -292,7 +390,9 @@ export const generateSlideHTML = (
           titleWidth: '100%',
           contentWidth: '100%',
           gap: '1.8rem',
-          padding: '2.5rem'
+          padding: '2.5rem',
+          titleSize: fontSizes.title,
+          contentSize: fontSizes.content
         };
     }
   };
@@ -358,7 +458,7 @@ export const generateSlideHTML = (
           ${layoutStyles.titlePosition};
         ">
           <h1 style="
-            font-size: ${fontSizes.title}rem;
+            font-size: ${layoutStyles.titleSize}rem;
             font-weight: 800;
             color: ${backgroundImage ? '#FFFFFF' : theme.primary};
             margin-bottom: ${subtitle ? '0.6rem' : '0'};
@@ -383,6 +483,7 @@ export const generateSlideHTML = (
           ` : ''}
         </div>
         
+        ${layoutStyles.contentWidth !== '0%' ? `
         <div style="
           width: ${layoutStyles.contentWidth};
           ${layoutStyles.contentPosition};
@@ -392,7 +493,7 @@ export const generateSlideHTML = (
         ">
           ${content ? `
             <div style="
-              font-size: ${fontSizes.content}rem;
+              font-size: ${layoutStyles.contentSize}rem;
               line-height: 1.6;
               color: ${backgroundImage ? '#F5F5F5' : theme.secondary};
               font-weight: 400;
@@ -443,6 +544,7 @@ export const generateSlideHTML = (
             </ul>
           ` : ''}
         </div>
+        ` : ''}
       </div>
     </div>
   `;

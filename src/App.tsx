@@ -4,6 +4,7 @@ import { ASPECT_RATIOS, DEFAULT_THEMES, TRANSLATIONS } from './constants';
 import { generateSlides, generateSlideHTML } from './utils/slideGenerator';
 import { exportToPDF, exportToHTML } from './utils/exportUtils';
 import { getDecryptedApiKey, saveEncryptedApiKey } from './utils/encryption';
+import { createDefaultBackgroundOptions, generatePicsumImage } from './utils/imageSearch';
 import { ThemeSelector } from './components/ThemeSelector';
 import { AspectRatioSelector } from './components/AspectRatioSelector';
 import { SlidesContainer } from './components/SlidesContainer';
@@ -67,22 +68,36 @@ function App() {
   // Update slides when theme or aspect ratio changes
   useEffect(() => {
     if (state.slides.length > 0) {
-      const updatedSlides = state.slides.map(slide => ({
-        ...slide,
-        htmlContent: generateSlideHTML(
-          slide.title,
-          slide.content,
-          state.theme,
-          state.aspectRatio,
-          slide.order,
-          undefined,
-          undefined,
-          slide.template || 'title-center',
-          slide.backgroundImage,
-          (slide as any).backgroundBlur || 0,
-          (slide as any).themeOverlay || 0.2
-        ),
-      }));
+      const updatedSlides = state.slides.map(slide => {
+        // 화면 비율이 변경되면 배경 이미지도 새로 생성
+        const backgroundImage = slide.backgroundSeed 
+          ? generatePicsumImage(
+              state.aspectRatio.width,
+              state.aspectRatio.height,
+              slide.backgroundSeed,
+              slide.backgroundBlur || 2,
+              slide.backgroundGrayscale || false
+            )
+          : slide.backgroundImage;
+
+        return {
+          ...slide,
+          backgroundImage,
+          htmlContent: generateSlideHTML(
+            slide.title,
+            slide.content,
+            state.theme,
+            state.aspectRatio,
+            slide.order,
+            undefined,
+            undefined,
+            slide.template || 'title-center',
+            backgroundImage,
+            slide.backgroundBlur || 2,
+            slide.themeOverlay || 0.3
+          ),
+        };
+      });
       setState(prev => ({ ...prev, slides: updatedSlides }));
     }
   }, [state.theme, state.aspectRatio]);
@@ -157,13 +172,40 @@ function App() {
   };
 
   const handleAddSlide = (afterIndex?: number) => {
+    const backgroundOptions = createDefaultBackgroundOptions(t.addContentHere);
+    const backgroundImage = generatePicsumImage(
+      state.aspectRatio.width,
+      state.aspectRatio.height,
+      backgroundOptions.seed,
+      backgroundOptions.blur,
+      backgroundOptions.grayscale
+    );
+
     const newSlide: Slide = {
       id: `slide-${Date.now()}`,
       title: t.newSlide,
       content: t.addContentHere,
-      htmlContent: generateSlideHTML(t.newSlide, t.addContentHere, state.theme, state.aspectRatio, 0),
+      htmlContent: generateSlideHTML(
+        t.newSlide, 
+        t.addContentHere, 
+        state.theme, 
+        state.aspectRatio, 
+        0,
+        undefined,
+        undefined,
+        'title-center',
+        backgroundImage,
+        backgroundOptions.blur,
+        0.3
+      ),
       order: afterIndex !== undefined ? afterIndex + 1 : state.slides.length,
       template: 'title-center',
+      backgroundImage,
+      backgroundBlur: backgroundOptions.blur,
+      backgroundSeed: backgroundOptions.seed,
+      backgroundGrayscale: backgroundOptions.grayscale,
+      slideLayout: 'title-top-content-bottom',
+      themeOverlay: 0.3,
       elements: [],
       history: [],
       historyIndex: 0,

@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Slide } from '../types';
 import { TRANSLATIONS } from '../constants';
-import { Eye, Code, Trash2 } from 'lucide-react';
+import { Eye, Code, Trash2, Copy, Check } from 'lucide-react';
 
 interface SlidePreviewProps {
   slide: Slide;
@@ -27,6 +27,18 @@ export const SlidePreview: React.FC<SlidePreviewProps> = ({
   containerStyle,
 }) => {
   const t = TRANSLATIONS[language];
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyHtml = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(slide.htmlContent);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy HTML:', err);
+    }
+  };
 
   return (
     <div
@@ -64,6 +76,19 @@ export const SlidePreview: React.FC<SlidePreviewProps> = ({
               <Code className="w-3 h-3" />
               {t.html}
             </button>
+            {activeTab === 'code' && (
+              <button
+                onClick={handleCopyHtml}
+                className={`
+                  flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors
+                  ${copied ? 'bg-green-100 text-green-700' : 'text-gray-600 hover:bg-gray-100'}
+                `}
+                title="HTML 코드 복사"
+              >
+                {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                {copied ? '복사됨' : '복사'}
+              </button>
+            )}
           </div>
         </div>
         
@@ -83,9 +108,22 @@ export const SlidePreview: React.FC<SlidePreviewProps> = ({
             dangerouslySetInnerHTML={{ __html: slide.htmlContent }}
           />
         ) : (
-          <pre className="text-xs bg-gray-100 p-3 rounded overflow-auto max-h-40">
-            <code>{slide.htmlContent}</code>
-          </pre>
+          <div 
+            className="text-xs bg-gray-100 p-3 rounded overflow-auto max-h-40 cursor-text select-all"
+            onClick={(e) => {
+              e.stopPropagation();
+              // HTML 코드 영역 클릭 시 전체 선택
+              const selection = window.getSelection();
+              const range = document.createRange();
+              range.selectNodeContents(e.currentTarget);
+              selection?.removeAllRanges();
+              selection?.addRange(range);
+            }}
+          >
+            <pre className="whitespace-pre-wrap font-mono">
+              <code>{slide.htmlContent}</code>
+            </pre>
+          </div>
         )}
       </div>
     </div>

@@ -57,35 +57,65 @@ AI SLIDE MAKER는 Google Gemini AI API를 활용하여 텍스트 내용을 자�
 ## 📁 프로젝트 구조
 
 AI-slidemaker/
+
 ├── src/
+
 │ ├── components/ # React 컴포넌트
+
 │ │ ├── ApiSettings.tsx # API 키 설정
+
 │ │ ├── AspectRatioSelector.tsx # 화면 비율 선택
+
 │ │ ├── BackgroundChanger.tsx # 배경 변경
+
 │ │ ├── ImageSearch.tsx # 이미지 검색
+
 │ │ ├── LanguageSelector.tsx # 언어 선택
+
 │ │ ├── ResizablePanel.tsx # 크기 조절 패널
+
 │ │ ├── SlideEditor.tsx # 슬라이드 편집기
+
 │ │ ├── SlidePreview.tsx # 슬라이드 미리보기
+
 │ │ ├── SlidesContainer.tsx # 슬라이드 컨테이너
+
 │ │ ├── SlideTypeSelector.tsx # 슬라이드 타입 선택
+
 │ │ ├── TemplateSelector.tsx # 템플릿 선택
+
 │ │ └── ThemeSelector.tsx # 테마 선택
+
 │ ├── utils/ # 유틸리티 함수
+
 │ │ ├── encryption.ts # 암호화 관련
+
 │ │ ├── exportUtils.ts # PDF/HTML 내보내기
+
 │ │ ├── geminiApi.ts # Gemini AI API 연동
+
 │ │ ├── imageSearch.ts # 이미지 검색 API
+
 │ │ └── slideGenerator.ts # 슬라이드 생성 로직
+
 │ ├── types/ # TypeScript 타입 정의
+
 │ │ └── index.ts
+
 │ ├── constants/ # 상수 정의
+
 │ │ └── index.ts
+
 │ ├── App.tsx # 메인 앱 컴포넌트
+
 │ └── main.tsx # 앱 엔트리 포인트
+
 ├── package.json # 의존성 및 스크립트
+
 ├── tailwind.config.js # Tailwind CSS 설정
+
 ├── tsconfig.json # TypeScript 설정
+
 └── vite.config.ts # Vite 빌드 설정
 
 
@@ -206,4 +236,4 @@ npm run build
 ## 📄 라이선스
 
 이 프로젝트는 오픈소스 개발자대회 참가를 위해 시작되었으며
-대회 진행에 따라, MIT 라이선스로 배포할 계획입니다.
+오픈소스로 배포됩니다.

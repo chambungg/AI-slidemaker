@@ -20,7 +20,7 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
       <label className="block text-sm font-medium text-gray-700">
         {t.themeColors}
       </label>
-      <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto">
+      <div className="grid grid-cols-4 gap-2">
         {DEFAULT_THEMES.map((theme, index) => (
           <button
             key={index}

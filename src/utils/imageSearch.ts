@@ -165,37 +165,116 @@ export const getRandomImages = (count: number = 6): PexelsImage[] => {
   }));
 };
 
-export const getBackgroundForContent = (content: string): string => {
+// Lorem Picsum API를 사용한 배경 이미지 생성
+export const generatePicsumImage = (
+  width: number = 1200,
+  height: number = 800,
+  seed?: string,
+  blur?: number,
+  grayscale?: boolean
+): string => {
+  let url = `https://picsum.photos/${width}/${height}`;
+  
+  if (seed) {
+    url += `?seed=${seed}`;
+  }
+  
+  const params = new URLSearchParams();
+  if (seed) params.append('seed', seed);
+  if (blur) params.append('blur', blur.toString());
+  if (grayscale) params.append('grayscale', '');
+  
+  if (params.toString()) {
+    url = `https://picsum.photos/${width}/${height}?${params.toString()}`;
+  }
+  
+  return url;
+};
+
+// 콘텐츠 기반 시드 생성
+export const generateSeedFromContent = (content: string): string => {
+  // 콘텐츠를 기반으로 일관된 시드 생성
+  let hash = 0;
+  for (let i = 0; i < content.length; i++) {
+    const char = content.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // 32비트 정수로 변환
+  }
+  return Math.abs(hash).toString();
+};
+
+// 콘텐츠 분석 기반 카테고리별 시드 생성
+export const getCategoryBasedSeed = (content: string): string => {
   const lowerContent = content.toLowerCase();
   
-  // Business related content
-  if (lowerContent.includes('business') || lowerContent.includes('company') || 
-      lowerContent.includes('meeting') || lowerContent.includes('office') ||
-      lowerContent.includes('team') || lowerContent.includes('work')) {
-    return IMAGE_CATEGORIES.business[Math.floor(Math.random() * IMAGE_CATEGORIES.business.length)];
+  // 카테고리별 시드 베이스
+  const categorySeeds = {
+    business: ['business', 'meeting', 'office', 'work', 'team', 'company'],
+    technology: ['tech', 'digital', 'computer', 'software', 'app', 'data'],
+    nature: ['nature', 'environment', 'green', 'eco', 'outdoor', 'landscape'],
+    education: ['education', 'learn', 'study', 'school', 'course', 'training'],
+    creative: ['creative', 'design', 'art', 'innovation', 'idea', 'inspiration'],
+    health: ['health', 'medical', 'wellness', 'fitness', 'care', 'hospital'],
+    finance: ['finance', 'money', 'investment', 'banking', 'economy', 'market'],
+    travel: ['travel', 'vacation', 'journey', 'destination', 'explore', 'adventure']
+  };
+  
+  // 콘텐츠에서 카테고리 매칭
+  for (const [category, keywords] of Object.entries(categorySeeds)) {
+    if (keywords.some(keyword => lowerContent.includes(keyword))) {
+      const baseHash = generateSeedFromContent(content);
+      return `${category}-${baseHash}`;
+    }
   }
   
-  // Technology related content
-  if (lowerContent.includes('technology') || lowerContent.includes('digital') || 
-      lowerContent.includes('computer') || lowerContent.includes('software') ||
-      lowerContent.includes('app') || lowerContent.includes('tech')) {
-    return IMAGE_CATEGORIES.technology[Math.floor(Math.random() * IMAGE_CATEGORIES.technology.length)];
-  }
-  
-  // Education related content
-  if (lowerContent.includes('education') || lowerContent.includes('learn') || 
-      lowerContent.includes('study') || lowerContent.includes('school') ||
-      lowerContent.includes('course') || lowerContent.includes('training')) {
-    return IMAGE_CATEGORIES.education[Math.floor(Math.random() * IMAGE_CATEGORIES.education.length)];
-  }
-  
-  // Nature related content
-  if (lowerContent.includes('nature') || lowerContent.includes('environment') || 
-      lowerContent.includes('green') || lowerContent.includes('eco') ||
-      lowerContent.includes('outdoor') || lowerContent.includes('landscape')) {
-    return IMAGE_CATEGORIES.nature[Math.floor(Math.random() * IMAGE_CATEGORIES.nature.length)];
-  }
-  
-  // Default to minimal/clean backgrounds
-  return IMAGE_CATEGORIES.minimal[Math.floor(Math.random() * IMAGE_CATEGORIES.minimal.length)];
+  // 기본 시드
+  return generateSeedFromContent(content);
+};
+
+// 배경 이미지 옵션 인터페이스
+export interface BackgroundImageOptions {
+  seed: string;
+  blur: number;
+  grayscale: boolean;
+  width: number;
+  height: number;
+}
+
+// 기본 배경 이미지 옵션 생성
+export const createDefaultBackgroundOptions = (content: string): BackgroundImageOptions => {
+  return {
+    seed: getCategoryBasedSeed(content),
+    blur: 2,
+    grayscale: false,
+    width: 1200,
+    height: 800
+  };
+};
+
+// 다음/이전 시드 생성 (좌우 버튼용)
+export const getNextSeed = (currentSeed: string): string => {
+  const hash = generateSeedFromContent(currentSeed + 'next');
+  return hash;
+};
+
+export const getPreviousSeed = (currentSeed: string): string => {
+  const hash = generateSeedFromContent(currentSeed + 'prev');
+  return hash;
+};
+
+// 랜덤 시드 생성
+export const getRandomSeed = (): string => {
+  return Math.random().toString(36).substring(2, 15);
+};
+
+// 기존 getBackgroundForContent 함수를 Lorem Picsum으로 대체
+export const getBackgroundForContent = (content: string): string => {
+  const options = createDefaultBackgroundOptions(content);
+  return generatePicsumImage(
+    options.width,
+    options.height,
+    options.seed,
+    options.blur,
+    options.grayscale
+  );
 };
