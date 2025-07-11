@@ -54,6 +54,8 @@ interface SlidesContainerProps {
   language: 'ko' | 'en';
   theme: Theme;
   aspectRatio: AspectRatio;
+  themeFont?: any;
+  slideBorderStyle?: any;
   onTabChange: (tab: 'preview' | 'code') => void;
   onSlideSelect: (slideId: string) => void;
   onSlideDelete: (slideId: string) => void;
@@ -69,6 +71,8 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
   language,
   theme,
   aspectRatio,
+  themeFont,
+  slideBorderStyle,
   onTabChange,
   onSlideSelect,
   onSlideDelete,
@@ -102,48 +106,60 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
     }
   }, [activeSlideId, slides]);
 
-  // 자동 저장 - tempSlide가 변경될 때마다 자동으로 적용
+  // 실시간 HTML 업데이트 - 편집 시 즉시 반영
+  useEffect(() => {
+    if (!tempSlide) return;
+
+    // tempSlide가 변경될 때마다 즉시 HTML 업데이트
+    const finalBackgroundImage = tempSlide.backgroundSeed 
+      ? generatePicsumImage(
+          aspectRatio.width,
+          aspectRatio.height,
+          tempSlide.backgroundSeed,
+          tempSlide.backgroundBlur || 2,
+          tempSlide.backgroundGrayscale || false
+        )
+      : tempSlide.backgroundImage;
+
+    const updatedHtmlContent = generateSlideHTML(
+      tempSlide.title,
+      tempSlide.content,
+      theme,
+      aspectRatio,
+      tempSlide.order,
+      themeFont,
+      slideBorderStyle,
+      tempSlide.slideLayout || tempSlide.template || 'title-top-content-bottom',
+      finalBackgroundImage,
+      tempSlide.backgroundBlur || 2,
+      tempSlide.themeOverlay || 0.3
+    );
+
+    // tempSlide의 htmlContent를 즉시 업데이트
+    setTempSlide(prev => prev ? {
+      ...prev,
+      backgroundImage: finalBackgroundImage,
+      htmlContent: updatedHtmlContent,
+    } : null);
+
+  }, [tempSlide?.title, tempSlide?.content, tempSlide?.backgroundSeed, tempSlide?.backgroundBlur, tempSlide?.backgroundGrayscale, tempSlide?.slideLayout, theme, aspectRatio, themeFont, slideBorderStyle]);
+
+  // 자동 저장 - 변경사항을 실제 슬라이드에 저장
   useEffect(() => {
     if (!tempSlide || !hasUnsavedChanges) return;
 
     const timer = setTimeout(() => {
-      // 최종 배경 이미지 생성 (블러와 그레이스케일 효과 포함)
-      const finalBackgroundImage = tempSlide.backgroundSeed 
-        ? generatePicsumImage(
-            aspectRatio.width,
-            aspectRatio.height,
-            tempSlide.backgroundSeed,
-            tempSlide.backgroundBlur || 2,
-            tempSlide.backgroundGrayscale || false
-          )
-        : tempSlide.backgroundImage;
-
       const updatedSlide = {
         ...tempSlide,
-        backgroundImage: finalBackgroundImage,
-        htmlContent: generateSlideHTML(
-          tempSlide.title,
-          tempSlide.content,
-          theme,
-          aspectRatio,
-          tempSlide.order,
-          undefined,
-          undefined,
-          tempSlide.slideLayout || tempSlide.template || 'title-top-content-bottom',
-          finalBackgroundImage,
-          tempSlide.backgroundBlur || 2,
-          tempSlide.themeOverlay || 0.3
-        ),
-        // 추가된 요소들도 포함
         elements: tempSlide.elements || [],
       };
       
       onSlideUpdate(updatedSlide);
       setHasUnsavedChanges(false);
-    }, 500); // 500ms 디바운스
+    }, 300); // 300ms 디바운스로 단축
 
     return () => clearTimeout(timer);
-  }, [tempSlide, hasUnsavedChanges, theme, aspectRatio, onSlideUpdate]);
+  }, [tempSlide, hasUnsavedChanges, onSlideUpdate]);
 
   // 요소 업데이트 함수
   const updateElement = useCallback((elementId: string, updates: Partial<SlideElement>) => {
@@ -277,6 +293,35 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                 }
               }, 100);
             }
+          };
+          reader.readAsDataURL(file);
+        }
+      };
+      fileInputRef.current.click();
+    }
+  };
+
+  // 배경 이미지 업로드 함수
+  const handleBackgroundImageUpload = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.onchange = (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (file && tempSlide) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const imageUrl = e.target?.result as string;
+            
+            // 배경 이미지 설정 (자동 블러 효과 적용)
+            const updatedSlide = {
+              ...tempSlide,
+              backgroundImage: imageUrl,
+              backgroundBlur: 2, // 자동으로 블러 효과 적용
+              backgroundSeed: undefined, // picsum 시드 제거
+              backgroundGrayscale: false, // 그레이스케일 비활성화
+            };
+            
+            setTempSlide(updatedSlide);
+            setHasUnsavedChanges(true);
           };
           reader.readAsDataURL(file);
         }
@@ -538,6 +583,31 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
       elements: updatedElements,
     } : null);
     setHasUnsavedChanges(true);
+  };
+
+  // 선택된 요소 정렬 함수
+  const applyElementAlignment = (alignment: 'left' | 'center' | 'right') => {
+    if (!tempSlide || !selectedElementId) return;
+
+    const containerWidth = 800;
+    const element = tempSlide.elements?.find(el => el.id === selectedElementId);
+    if (!element) return;
+
+    let newX = element.x;
+
+    switch (alignment) {
+      case 'left':
+        newX = 20; // 좌측 여백
+        break;
+      case 'center':
+        newX = (containerWidth - element.width) / 2; // 가운데 정렬
+        break;
+      case 'right':
+        newX = containerWidth - element.width - 20; // 우측 여백
+        break;
+    }
+
+    updateElement(selectedElementId, { x: newX });
   };
 
   const selectedElement = tempSlide?.elements?.find(el => el.id === selectedElementId);
@@ -818,6 +888,10 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                       color: tempSlide.backgroundImage ? '#FFFFFF' : theme.primary,
                                       textShadow: tempSlide.backgroundImage ? '2px 2px 4px rgba(0,0,0,0.8)' : 'none',
                                     }}
+                                    onInput={(e) => {
+                                      const newTitle = e.currentTarget.textContent || '';
+                                      handleSlideTextEdit('title', newTitle);
+                                    }}
                                     onBlur={(e) => handleSlideTextEdit('title', e.target.textContent || '')}
                                     onKeyDown={(e) => {
                                       if (e.key === 'Enter' && !e.shiftKey) {
@@ -851,6 +925,10 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                       style={{
                                         color: tempSlide.backgroundImage ? '#F0F0F0' : theme.secondary,
                                         textShadow: tempSlide.backgroundImage ? '1px 1px 2px rgba(0,0,0,0.7)' : 'none',
+                                      }}
+                                      onInput={(e) => {
+                                        const newContent = e.currentTarget.textContent || '';
+                                        handleSlideTextEdit('content', newContent);
                                       }}
                                       onBlur={(e) => handleSlideTextEdit('content', e.target.textContent || '')}
                                       onKeyDown={(e) => {
@@ -1050,6 +1128,38 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                           onTemplateChange={handleTemplateChange}
                         />
 
+                        {/* 요소 배치 버튼 */}
+                        <div className="bg-white rounded-lg border p-3 space-y-3">
+                          <h4 className="text-sm font-semibold text-gray-800">요소 배치</h4>
+                          {selectedElementId && selectedElementId !== 'slide-title' && selectedElementId !== 'slide-content' ? (
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => applyElementAlignment('left')}
+                                className="flex-1 px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded"
+                                title="좌측 정렬"
+                              >
+                                <AlignLeft className="w-3 h-3 mx-auto" />
+                              </button>
+                              <button
+                                onClick={() => applyElementAlignment('center')}
+                                className="flex-1 px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded"
+                                title="가운데 정렬"
+                              >
+                                <AlignCenter className="w-3 h-3 mx-auto" />
+                              </button>
+                              <button
+                                onClick={() => applyElementAlignment('right')}
+                                className="flex-1 px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded"
+                                title="우측 정렬"
+                              >
+                                <AlignRight className="w-3 h-3 mx-auto" />
+                              </button>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-gray-500 text-center">요소를 선택하세요</p>
+                          )}
+                        </div>
+
                         {/* 배경 이미지 컨트롤 */}
                         <BackgroundController
                           currentSeed={tempSlide.backgroundSeed || 'default'}
@@ -1062,51 +1172,30 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                           onGrayscaleChange={handleBackgroundGrayscaleChange}
                         />
 
-                        {/* 요소 추가 버튼 */}
+                        {/* 요소 추가 버튼 - 한 줄 배치 */}
                         <div className="bg-white rounded-lg border p-3 space-y-3">
                           <h4 className="text-sm font-semibold text-gray-800">요소 추가</h4>
-                          <div className="space-y-2">
+                          <div className="grid grid-cols-3 gap-2">
                             <button
                               onClick={() => addNewElement('text')}
-                              className="w-full flex items-center gap-2 px-3 py-2 text-sm bg-green-600 text-white hover:bg-green-700 rounded-lg transition-colors"
+                              className="flex items-center justify-center gap-1 px-2 py-2 text-xs bg-green-600 text-white hover:bg-green-700 rounded-lg transition-colors"
                             >
-                              <Plus className="w-4 h-4" />
-                              텍스트 추가
+                              <Plus className="w-3 h-3" />
+                              텍스트
                             </button>
                             <button
                               onClick={() => handleImageUpload()}
-                              className="w-full flex items-center gap-2 px-3 py-2 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors"
+                              className="flex items-center justify-center gap-1 px-2 py-2 text-xs bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors"
                             >
-                              <ImageIcon className="w-4 h-4" />
-                              이미지 추가
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* 배치 버튼 */}
-                        <div className="bg-white rounded-lg border p-3 space-y-3">
-                          <h4 className="text-sm font-semibold text-gray-800">요소 배치</h4>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => applyLayoutTemplate('left')}
-                              className="flex-1 px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded"
-                              title="좌측 정렬"
-                            >
-                              <AlignLeft className="w-3 h-3 mx-auto" />
+                              <ImageIcon className="w-3 h-3" />
+                              이미지
                             </button>
                             <button
-                              onClick={() => applyLayoutTemplate('center')}
-                              className="flex-1 px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded"
-                              title="가운데 정렬"
+                              onClick={() => handleBackgroundImageUpload()}
+                              className="flex items-center justify-center gap-1 px-2 py-2 text-xs bg-purple-600 text-white hover:bg-purple-700 rounded-lg transition-colors"
                             >
-                              <AlignCenter className="w-3 h-3 mx-auto" />
-                            </button>
-                            <button
-                              onClick={() => applyLayoutTemplate('right')}
-                              className="flex-1 px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded"
-                              title="우측 정렬"
-                            >
-                              <AlignRight className="w-3 h-3 mx-auto" />
+                              <Upload className="w-3 h-3" />
+                              배경
                             </button>
                           </div>
                         </div>

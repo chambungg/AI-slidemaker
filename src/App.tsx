@@ -24,7 +24,9 @@ import {
   Loader,
   Presentation,
   Lightbulb,
-  Shuffle
+  Shuffle,
+  Sun,
+  Moon
 } from 'lucide-react';
 // Hello World!
 function App() {
@@ -40,6 +42,9 @@ function App() {
     language: 'ko',
     selectedElementId: undefined,
   });
+
+  // 다크모드 상태 추가
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
   const [apiSettings, setApiSettings] = useState<ApiSettings>({
     geminiApiKey: '',
@@ -80,6 +85,7 @@ function App() {
     const savedApiKey = getDecryptedApiKey();
     const savedLanguage = localStorage.getItem('language') as 'ko' | 'en';
     const savedSlideType = localStorage.getItem('slideType') as SlideType;
+    const savedDarkMode = localStorage.getItem('darkMode') === 'true';
     
     if (savedApiKey) {
       setApiSettings({
@@ -96,7 +102,16 @@ function App() {
     if (savedSlideType) {
       setSlideType(savedSlideType);
     }
+
+    setIsDarkMode(savedDarkMode);
   }, []);
+
+  // 다크모드 변경시 localStorage에 저장
+  const toggleDarkMode = () => {
+    const newDarkMode = !isDarkMode;
+    setIsDarkMode(newDarkMode);
+    localStorage.setItem('darkMode', newDarkMode.toString());
+  };
 
   // Update slides when theme or aspect ratio changes
   useEffect(() => {
@@ -167,28 +182,88 @@ function App() {
 
     const contentPrompts = {
       ko: [
+        // 기술 분야
         "최신 AI 기술 동향과 미래 전망에 대한 발표 자료를 만들어주세요",
-        "지속가능한 환경을 위한 친환경 기술과 실천 방안에 대해 설명해주세요",
-        "디지털 마케팅 전략과 소셜미디어 활용법에 대한 프레젠테이션을 준비해주세요",
+        "블록체인 기술의 원리와 실생활 적용 사례를 소개해주세요",
+        "사물인터넷(IoT)의 발전과 스마트 시티 구축 방안을 설명해주세요",
+        "클라우드 컴퓨팅의 장점과 기업 도입 전략을 다뤄주세요",
+        "빅데이터 분석의 중요성과 활용 방법을 제시해주세요",
+        
+        // 비즈니스 분야
         "창업을 위한 비즈니스 모델 구성과 투자 유치 방법을 소개해주세요",
-        "팀워크 향상을 위한 의사소통 기법과 협업 도구 활용법을 알려주세요",
-        "데이터 분석의 중요성과 비즈니스 인사이트 도출 방법을 설명해주세요",
+        "디지털 마케팅 전략과 소셜미디어 활용법에 대한 프레젠테이션을 준비해주세요",
+        "고객 경험(CX) 향상을 위한 서비스 디자인 방법론을 설명해주세요",
+        "원격 근무 시대의 팀 관리와 생산성 향상 방안을 다뤄주세요",
+        "ESG 경영의 중요성과 기업의 지속가능성 전략을 소개해주세요",
+        
+        // 교육 분야
         "온라인 교육의 효과적인 설계와 운영 방안에 대해 논의해주세요",
+        "메타버스를 활용한 몰입형 학습 환경 구축 방법을 설명해주세요",
+        "개인 맞춤형 학습 시스템과 적응형 교육 기술을 다뤄주세요",
+        "디지털 리터러시 교육의 필요성과 실천 방안을 제시해주세요",
+        
+        // 환경/사회 분야
+        "지속가능한 환경을 위한 친환경 기술과 실천 방안에 대해 설명해주세요",
+        "재생에너지의 종류와 효율적인 활용 방법을 소개해주세요",
+        "순환경제 시스템 구축과 폐기물 관리 혁신을 다뤄주세요",
+        "도시농업과 스마트팜 기술의 발전 방향을 설명해주세요",
+        
+        // 건강/라이프스타일 분야
         "건강한 라이프스타일을 위한 운동과 영양 관리법을 제시해주세요",
+        "정신건강 관리와 스트레스 해소 방법을 소개해주세요",
+        "디지털 헬스케어 기술과 개인 건강 관리 도구를 다뤄주세요",
+        "일과 삶의 균형을 위한 시간 관리 기법을 설명해주세요",
+        
+        // 글로벌/문화 분야
         "글로벌 시장 진출을 위한 국제화 전략과 문화적 고려사항을 다뤄주세요",
-        "미래 직업 트렌드와 필요한 역량 개발 방향에 대해 분석해주세요"
+        "다문화 사회의 이해와 상호 존중 문화 조성 방안을 제시해주세요",
+        "K-컬처의 세계적 확산과 문화 콘텐츠 산업 전망을 소개해주세요",
+        
+        // 미래/트렌드 분야
+        "미래 직업 트렌드와 필요한 역량 개발 방향에 대해 분석해주세요",
+        "인구 고령화 사회의 도전과 기회를 다뤄주세요"
       ],
       en: [
+        // Technology
         "Create a presentation about the latest AI technology trends and future prospects",
-        "Explain eco-friendly technologies and practices for sustainable environment",
-        "Prepare a presentation on digital marketing strategies and social media utilization",
+        "Introduce blockchain technology principles and real-life application cases",
+        "Explain IoT development and smart city construction strategies",
+        "Cover cloud computing advantages and enterprise adoption strategies",
+        "Present the importance and utilization methods of big data analysis",
+        
+        // Business
         "Introduce business model composition and investment attraction methods for startups",
-        "Share communication techniques and collaboration tools for improving teamwork",
-        "Explain the importance of data analysis and methods for deriving business insights",
+        "Prepare a presentation on digital marketing strategies and social media utilization",
+        "Explain service design methodologies for improving customer experience (CX)",
+        "Cover team management and productivity improvement in the remote work era",
+        "Introduce ESG management importance and corporate sustainability strategies",
+        
+        // Education
         "Discuss effective design and operation of online education",
+        "Explain methods for building immersive learning environments using metaverse",
+        "Cover personalized learning systems and adaptive education technologies",
+        "Present the necessity and practical plans for digital literacy education",
+        
+        // Environment/Society
+        "Explain eco-friendly technologies and practices for sustainable environment",
+        "Introduce types of renewable energy and efficient utilization methods",
+        "Cover circular economy system construction and waste management innovation",
+        "Explain the development direction of urban agriculture and smart farm technology",
+        
+        // Health/Lifestyle
         "Present exercise and nutrition management for a healthy lifestyle",
+        "Introduce mental health management and stress relief methods",
+        "Cover digital healthcare technology and personal health management tools",
+        "Explain time management techniques for work-life balance",
+        
+        // Global/Culture
         "Cover internationalization strategies and cultural considerations for global market entry",
-        "Analyze future job trends and necessary competency development directions"
+        "Present understanding of multicultural society and mutual respect culture creation",
+        "Introduce K-culture's global expansion and cultural content industry prospects",
+        
+        // Future/Trends
+        "Analyze future job trends and necessary competency development directions",
+        "Cover challenges and opportunities in an aging society"
       ]
     };
 
@@ -330,32 +405,47 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
+    <div className={`min-h-screen transition-colors ${isDarkMode ? 'dark bg-gray-900' : 'bg-gray-50'}`}>
+      <header className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-b px-6 py-4 transition-colors`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Presentation className="w-8 h-8 text-blue-600" />
-            <h1 className="text-2xl font-bold text-gray-900">{t.title}</h1>
+            <h1 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{t.title}</h1>
           </div>
           
-          {state.slides.length > 0 && (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => exportToPDF(state.slides, state.aspectRatio)}
-                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-              >
-                <FileText className="w-4 h-4" />
-                {t.exportPDF}
-              </button>
-              <button
-                onClick={() => exportToHTML(state.slides, state.aspectRatio)}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-              >
-                <Globe className="w-4 h-4" />
-                {t.exportHTML}
-              </button>
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            {/* 다크모드 토글 버튼 */}
+            <button
+              onClick={toggleDarkMode}
+              className={`p-2 rounded-lg transition-colors ${
+                isDarkMode 
+                  ? 'bg-gray-700 text-yellow-400 hover:bg-gray-600' 
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+              title={isDarkMode ? '라이트모드로 변경' : '다크모드로 변경'}
+            >
+              {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
+            
+            {state.slides.length > 0 && (
+              <>
+                <button
+                  onClick={() => exportToPDF(state.slides, state.aspectRatio)}
+                  className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                >
+                  <FileText className="w-4 h-4" />
+                  {t.exportPDF}
+                </button>
+                <button
+                  onClick={() => exportToHTML(state.slides, state.aspectRatio)}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  <Globe className="w-4 h-4" />
+                  {t.exportHTML}
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </header>
 
@@ -366,7 +456,7 @@ function App() {
           minWidth={300} 
           maxWidth={500} 
           position="left"
-          className="bg-white border-r border-gray-200 p-6 overflow-y-auto"
+          className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-r p-6 overflow-y-auto transition-colors`}
         >
           <div className="space-y-6">
             <LanguageSelector
@@ -475,6 +565,8 @@ function App() {
               language={state.language}
               theme={state.theme}
               aspectRatio={state.aspectRatio}
+              themeFont={themeFont}
+              slideBorderStyle={slideBorderStyle}
               onTabChange={(tab) => setState(prev => ({ ...prev, activeTab: tab }))}
               onSlideSelect={(slideId) => setState(prev => ({ ...prev, activeSlideId: slideId }))}
               onSlideDelete={handleSlideDelete}
@@ -483,7 +575,7 @@ function App() {
                   onSlideMove={handleSlideMove}
                 />
           ) : (
-            <div className="h-full flex items-center justify-center text-gray-500">
+            <div className={`h-full flex items-center justify-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
               <div className="text-center">
                 <Presentation className="w-16 h-16 mx-auto mb-4 opacity-50" />
                 <p className="text-lg">{t.noSlidesGenerated}</p>

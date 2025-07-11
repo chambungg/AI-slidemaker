@@ -78,13 +78,13 @@ export const SlideTemplateSelector: React.FC<SlideTemplateSelectorProps> = ({
         <h4 className="text-sm font-semibold text-gray-800">슬라이드 템플릿</h4>
       </div>
       
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-3 gap-2">
         {SLIDE_TEMPLATES.map((template) => (
           <button
             key={template.id}
             onClick={() => onTemplateChange(template.id)}
             className={`
-              relative p-3 rounded-lg border-2 transition-all text-left
+              relative p-2 rounded-lg border-2 transition-all text-center
               ${currentTemplate === template.id 
                 ? 'border-blue-500 bg-blue-50 shadow-md' 
                 : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
@@ -92,24 +92,17 @@ export const SlideTemplateSelector: React.FC<SlideTemplateSelectorProps> = ({
             `}
             title={template.description}
           >
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex flex-col items-center gap-1">
               {template.icon}
-              <span className="text-xs font-medium text-gray-700">
+              <span className="text-xs font-medium text-gray-700 truncate">
                 {template.name}
               </span>
             </div>
             
-            {/* 미리보기 */}
-            <div className="text-xs text-gray-500 bg-gray-100 rounded p-2 min-h-[40px] flex items-center justify-center">
-              <pre className="text-center whitespace-pre-wrap">
-                {template.preview}
-              </pre>
-            </div>
-            
             {/* 선택 표시 */}
             {currentTemplate === template.id && (
-              <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
-                <div className="w-2 h-2 bg-white rounded-full"></div>
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full flex items-center justify-center">
+                <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
               </div>
             )}
           </button>

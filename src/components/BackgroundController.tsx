@@ -124,8 +124,8 @@ export const BackgroundController: React.FC<BackgroundControllerProps> = ({
         </div>
       </div>
 
-      {/* 컨트롤 옵션 */}
-      <div className="space-y-2">
+      {/* 컨트롤 옵션 - 2열 배치 */}
+      <div className="grid grid-cols-2 gap-3">
         {/* 블러 조절 */}
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">
@@ -142,22 +142,24 @@ export const BackgroundController: React.FC<BackgroundControllerProps> = ({
         </div>
 
         {/* 그레이스케일 토글 */}
-        <div className="flex items-center justify-between">
-          <label className="text-xs font-medium text-gray-600">
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">
             그레이스케일
           </label>
-          <button
-            onClick={() => onGrayscaleChange(!grayscale)}
-            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-              grayscale ? 'bg-blue-600' : 'bg-gray-200'
-            }`}
-          >
-            <span
-              className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
-                grayscale ? 'translate-x-5' : 'translate-x-1'
+          <div className="flex items-center">
+            <button
+              onClick={() => onGrayscaleChange(!grayscale)}
+              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                grayscale ? 'bg-blue-600' : 'bg-gray-200'
               }`}
-            />
-          </button>
+            >
+              <span
+                className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                  grayscale ? 'translate-x-5' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
         </div>
 
         {/* 시드 정보 (개발용) */}
