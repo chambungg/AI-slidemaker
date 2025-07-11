@@ -746,7 +746,17 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
               ) : (
                 /* 선택된 슬라이드는 직접 편집 가능한 형태로 표시 */
                 tempSlide && (
-                  <div className={`${isDarkMode ? 'bg-gray-800 border-blue-400' : 'bg-white border-blue-500'} rounded-lg border-2 p-4`}>
+                  <div
+                    className="relative"
+                    onMouseDown={(e) => {
+                      // 요소 위가 아닌 슬라이드 배경을 클릭했을 때만 선택 해제
+                      if ((e.target as HTMLElement).dataset.slideId) {
+                        onSlideSelect('');
+                      }
+                    }}
+                  >
+                    {/* 선택된 슬라이드는 직접 편집 가능한 형태로 표시 */}
+                    <div className={`${isDarkMode ? 'bg-gray-800 border-blue-400' : 'bg-white border-blue-500'} rounded-lg border-2 p-4`}>
                     {/* 편집 컨트롤 바 */}
                                           <div className={`flex items-center justify-between mb-4 p-3 ${isDarkMode ? 'bg-gray-700' : 'bg-blue-50'} rounded-lg`}>
                       <div className="flex items-center gap-2">
