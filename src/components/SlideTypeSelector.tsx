@@ -1,8 +1,14 @@
 import React from 'react';
-import { TRANSLATIONS } from '../constants';
-import { FileText, Presentation, Image } from 'lucide-react';
+import { Presentation, CreditCard, Image } from 'lucide-react';
 
-export type SlideType = 'card-news' | 'ppt' | 'image-card';
+export type SlideType = 'ppt' | 'cardnews' | 'imagecard';
+
+interface SlideTypeOption {
+  id: SlideType;
+  name: string;
+  description: string;
+  icon: React.ReactNode;
+}
 
 interface SlideTypeSelectorProps {
   selectedType: SlideType;
@@ -10,73 +16,97 @@ interface SlideTypeSelectorProps {
   onTypeChange: (type: SlideType) => void;
 }
 
+const SLIDE_TYPE_OPTIONS: Record<'ko' | 'en', SlideTypeOption[]> = {
+  ko: [
+    {
+      id: 'ppt',
+      name: 'PPT',
+      description: '일반적인 프레젠테이션 형식으로 제목과 내용이 구분된 슬라이드',
+      icon: <Presentation className="w-5 h-5" />
+    },
+    {
+      id: 'cardnews',
+      name: '카드뉴스',
+      description: '소셜미디어에 적합한 카드 형식의 정보 전달 슬라이드',
+      icon: <CreditCard className="w-5 h-5" />
+    },
+    {
+      id: 'imagecard',
+      name: '이미지카드',
+      description: '이미지 중심의 시각적 임팩트가 강한 카드 형식',
+      icon: <Image className="w-5 h-5" />
+    }
+  ],
+  en: [
+    {
+      id: 'ppt',
+      name: 'PPT',
+      description: 'Standard presentation format with distinct titles and content',
+      icon: <Presentation className="w-5 h-5" />
+    },
+    {
+      id: 'cardnews',
+      name: 'Card News',
+      description: 'Card-style information delivery slides suitable for social media',
+      icon: <CreditCard className="w-5 h-5" />
+    },
+    {
+      id: 'imagecard',
+      name: 'Image Card',
+      description: 'Image-focused card format with strong visual impact',
+      icon: <Image className="w-5 h-5" />
+    }
+  ]
+};
+
 export const SlideTypeSelector: React.FC<SlideTypeSelectorProps> = ({
   selectedType,
   language,
   onTypeChange,
 }) => {
-  const t = TRANSLATIONS[language];
-
-  const slideTypes = [
-    {
-      id: 'card-news' as SlideType,
-      name: language === 'ko' ? '카드뉴스' : 'Card News',
-      description: language === 'ko' 
-        ? '짧고 요약된 문구 위주의 카드 형태' 
-        : 'Short and summarized card format',
-      icon: FileText,
-    },
-    {
-      id: 'ppt' as SlideType,
-      name: language === 'ko' ? 'PPT' : 'PPT',
-      description: language === 'ko' 
-        ? '일반적인 프레젠테이션 스타일' 
-        : 'Standard presentation style',
-      icon: Presentation,
-    },
-    {
-      id: 'image-card' as SlideType,
-      name: language === 'ko' ? '이미지카드' : 'Image Card',
-      description: language === 'ko' 
-        ? '이미지와 메시지가 조합된 형태' 
-        : 'Image with message combination',
-      icon: Image,
-    },
-  ];
+  const options = SLIDE_TYPE_OPTIONS[language];
 
   return (
-    <div className="space-y-3">
-      <label className="block text-sm font-medium text-gray-700">
-        {language === 'ko' ? '슬라이드 타입' : 'Slide Type'}
-      </label>
+    <div className="bg-white rounded-lg border p-3 space-y-3">
+      <h4 className="text-sm font-semibold text-gray-800">
+        슬라이드 타입
+      </h4>
       
-      <div className="grid grid-cols-1 gap-3">
-        {slideTypes.map((type) => {
-          const Icon = type.icon;
-          return (
-            <button
-              key={type.id}
-              onClick={() => onTypeChange(type.id)}
-              className={`
-                flex items-center gap-3 p-3 rounded-lg border-2 transition-all text-left
-                ${selectedType === type.id
-                  ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
-                  : 'border-gray-200 hover:border-gray-300 bg-white hover:bg-gray-50'
-                }
-              `}
-            >
-              <Icon className={`w-5 h-5 ${selectedType === type.id ? 'text-blue-600' : 'text-gray-500'}`} />
-              <div>
-                <div className={`font-medium ${selectedType === type.id ? 'text-blue-900' : 'text-gray-900'}`}>
-                  {type.name}
-                </div>
-                <div className={`text-sm ${selectedType === type.id ? 'text-blue-700' : 'text-gray-600'}`}>
-                  {type.description}
-                </div>
+      <div className="grid grid-cols-3 gap-2">
+        {options.map((option) => (
+          <button
+            key={option.id}
+            onClick={() => onTypeChange(option.id)}
+            className={`relative p-3 rounded border-2 transition-all duration-200 group ${
+              selectedType === option.id
+                ? 'border-blue-500 bg-blue-50'
+                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+            }`}
+            title={option.description}
+          >
+            <div className="flex flex-col items-center gap-2">
+              <div className={`${selectedType === option.id ? 'text-blue-600' : 'text-gray-600'}`}>
+                {option.icon}
               </div>
-            </button>
-          );
-        })}
+              <span className={`text-xs font-medium ${
+                selectedType === option.id ? 'text-blue-800' : 'text-gray-700'
+              }`}>
+                {option.name}
+              </span>
+            </div>
+            
+            {/* 툴팁 */}
+            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 whitespace-nowrap">
+              {option.description}
+              <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
+            </div>
+          </button>
+        ))}
+      </div>
+      
+      {/* 현재 선택된 타입 정보 */}
+      <div className="text-xs text-gray-500 p-2 bg-gray-50 rounded">
+        <div>선택됨: <span className="font-medium">{options.find(opt => opt.id === selectedType)?.name}</span></div>
       </div>
     </div>
   );

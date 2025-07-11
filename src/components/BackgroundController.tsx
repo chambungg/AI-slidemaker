@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Shuffle, Image as ImageIcon } from 'lucide-react';
 import { generatePicsumImage, getNextSeed, getPreviousSeed, getRandomSeed } from '../utils/imageSearch';
 
@@ -23,6 +23,16 @@ export const BackgroundController: React.FC<BackgroundControllerProps> = ({
   onBlurChange,
   onGrayscaleChange,
 }) => {
+  // 후보 이미지들을 고정하기 위한 상태
+  const [candidateSeeds, setCandidateSeeds] = useState<string[]>([]);
+
+  // currentSeed가 변경될 때만 후보 이미지들 재생성
+  useEffect(() => {
+    const baseSeed = currentSeed.split('-alt-')[0]; // -alt- 접미사 제거
+    const newCandidates = Array.from({ length: 5 }, (_, i) => `${baseSeed}-alt-${i + 1}`);
+    setCandidateSeeds(newCandidates);
+  }, [currentSeed.split('-alt-')[0]]); // 메인 시드가 변경될 때만
+
   const handlePreviousImage = () => {
     const prevSeed = getPreviousSeed(currentSeed);
     onSeedChange(prevSeed);
@@ -88,24 +98,23 @@ export const BackgroundController: React.FC<BackgroundControllerProps> = ({
         </div>
       </div>
 
-      {/* 후보 이미지들 */}
+      {/* 후보 이미지들 - 고정된 시드 사용 */}
       <div className="space-y-2">
         <h5 className="text-xs font-medium text-gray-600">다른 이미지 후보</h5>
         <div className="grid grid-cols-5 gap-1">
-          {[1, 2, 3, 4, 5].map((candidateIndex) => {
-            const candidateSeed = `${currentSeed}-alt-${candidateIndex}`;
+          {candidateSeeds.map((candidateSeed, index) => {
             const candidateUrl = generatePicsumImage(width, height, candidateSeed, blur, grayscale);
             
             return (
               <button
-                key={candidateIndex}
+                key={candidateSeed}
                 onClick={() => onSeedChange(candidateSeed)}
                 className="relative aspect-square rounded overflow-hidden border hover:border-blue-300 transition-colors"
-                title={`후보 이미지 ${candidateIndex}`}
+                title={`후보 이미지 ${index + 1}`}
               >
                 <img
                   src={candidateUrl}
-                  alt={`Candidate ${candidateIndex}`}
+                  alt={`Candidate ${index + 1}`}
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-black bg-opacity-10 hover:bg-opacity-0 transition-opacity" />

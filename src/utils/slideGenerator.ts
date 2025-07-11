@@ -77,9 +77,9 @@ export const generateSlides = async (
 
 const getLayoutForSlideType = (slideType: SlideType, index: number): string => {
   switch (slideType) {
-    case 'card-news':
+    case 'cardnews':
       return 'title-center'; 
-    case 'image-card':
+    case 'imagecard':
       return 'title-center';
     case 'ppt':
     default:
@@ -104,7 +104,7 @@ const generateSlidesSimple = (
     const wordsCount = section.split(' ').length;
     
     // 살라이드 타입
-    const maxWords = slideType === 'card-news' ? 30 : slideType === 'image-card' ? 50 : 100;
+    const maxWords = slideType === 'cardnews' ? 30 : slideType === 'imagecard' ? 50 : 100;
     
     // 너무 길 때 자르기
     if (wordsCount > maxWords) {
@@ -113,7 +113,7 @@ const generateSlidesSimple = (
       let slideCount = 0;
       
       sentences.forEach((sentence, sentenceIndex) => {
-        const maxWordsPerSlide = slideType === 'card-news' ? 20 : slideType === 'image-card' ? 40 : 80;
+        const maxWordsPerSlide = slideType === 'cardnews' ? 20 : slideType === 'imagecard' ? 40 : 80;
         
         if (currentSlideContent.split(' ').length + sentence.split(' ').length > maxWordsPerSlide) {
           // 슬라이드 만들기

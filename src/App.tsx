@@ -22,7 +22,9 @@ import {
   FileText, 
   Globe, 
   Loader,
-  Presentation
+  Presentation,
+  Lightbulb,
+  Shuffle
 } from 'lucide-react';
 // Hello World!
 function App() {
@@ -100,7 +102,7 @@ function App() {
   useEffect(() => {
     if (state.slides.length > 0) {
       const updatedSlides = state.slides.map(slide => {
-        // 화면 비율이 변경되면 배경 이미지도 새로 생성
+        // 화면 비율이 변경되면 배경 이미지도 새로 생성하지만 시드는 유지
         const backgroundImage = slide.backgroundSeed 
           ? generatePicsumImage(
               state.aspectRatio.width,
@@ -120,9 +122,9 @@ function App() {
             state.theme,
             state.aspectRatio,
             slide.order,
-            undefined,
-            undefined,
-            slide.template || 'title-center',
+            themeFont,
+            slideBorderStyle,
+            slide.template || themeTemplate.defaultLayout,
             backgroundImage,
             slide.backgroundBlur || 2,
             slide.themeOverlay || 0.3
@@ -131,7 +133,7 @@ function App() {
       });
       setState(prev => ({ ...prev, slides: updatedSlides }));
     }
-  }, [state.theme, state.aspectRatio]);
+  }, [state.theme, state.aspectRatio, themeFont, themeTemplate, slideBorderStyle]);
 
   const t = TRANSLATIONS[state.language];
 
@@ -152,6 +154,57 @@ function App() {
   const handleSlideTypeChange = (type: SlideType) => {
     localStorage.setItem('slideType', type);
     setSlideType(type);
+  };
+
+  // AI 콘텐츠 프롬프트 생성 함수
+  const generateAIContentPrompt = async () => {
+    if (!state.geminiApiKey) {
+      alert(t.apiKeyRequired);
+      return;
+    }
+
+    setState(prev => ({ ...prev, isGenerating: true }));
+
+    const contentPrompts = {
+      ko: [
+        "최신 AI 기술 동향과 미래 전망에 대한 발표 자료를 만들어주세요",
+        "지속가능한 환경을 위한 친환경 기술과 실천 방안에 대해 설명해주세요",
+        "디지털 마케팅 전략과 소셜미디어 활용법에 대한 프레젠테이션을 준비해주세요",
+        "창업을 위한 비즈니스 모델 구성과 투자 유치 방법을 소개해주세요",
+        "팀워크 향상을 위한 의사소통 기법과 협업 도구 활용법을 알려주세요",
+        "데이터 분석의 중요성과 비즈니스 인사이트 도출 방법을 설명해주세요",
+        "온라인 교육의 효과적인 설계와 운영 방안에 대해 논의해주세요",
+        "건강한 라이프스타일을 위한 운동과 영양 관리법을 제시해주세요",
+        "글로벌 시장 진출을 위한 국제화 전략과 문화적 고려사항을 다뤄주세요",
+        "미래 직업 트렌드와 필요한 역량 개발 방향에 대해 분석해주세요"
+      ],
+      en: [
+        "Create a presentation about the latest AI technology trends and future prospects",
+        "Explain eco-friendly technologies and practices for sustainable environment",
+        "Prepare a presentation on digital marketing strategies and social media utilization",
+        "Introduce business model composition and investment attraction methods for startups",
+        "Share communication techniques and collaboration tools for improving teamwork",
+        "Explain the importance of data analysis and methods for deriving business insights",
+        "Discuss effective design and operation of online education",
+        "Present exercise and nutrition management for a healthy lifestyle",
+        "Cover internationalization strategies and cultural considerations for global market entry",
+        "Analyze future job trends and necessary competency development directions"
+      ]
+    };
+
+    try {
+      const prompts = contentPrompts[state.language];
+      const randomPrompt = prompts[Math.floor(Math.random() * prompts.length)];
+      
+      setState(prev => ({ 
+        ...prev, 
+        content: randomPrompt,
+        isGenerating: false 
+      }));
+    } catch (error) {
+      console.error('Error generating AI content prompt:', error);
+      setState(prev => ({ ...prev, isGenerating: false }));
+    }
   };
 
   const handleGenerate = async () => {
@@ -328,9 +381,24 @@ function App() {
             />
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                {t.content}
-              </label>
+              <div className="flex items-center justify-between mb-3">
+                <label className="block text-sm font-medium text-gray-700">
+                  {t.content}
+                </label>
+                <button
+                  onClick={generateAIContentPrompt}
+                  disabled={!state.geminiApiKey || state.isGenerating}
+                  className="flex items-center gap-1 px-2 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  title="AI가 프롬프트 예시를 생성합니다"
+                >
+                  {state.isGenerating ? (
+                    <Loader className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Lightbulb className="w-3 h-3" />
+                  )}
+                  AI 예시
+                </button>
+              </div>
               <textarea
                 value={state.content}
                 onChange={(e) => setState(prev => ({ ...prev, content: e.target.value }))}
@@ -357,12 +425,12 @@ function App() {
             />
 
             <ThemeFontSelector
-              selectedFont={themeFont}
+              currentFont={themeFont}
               onFontChange={setThemeFont}
             />
 
             <ThemeTemplateSelector
-              selectedTemplate={themeTemplate}
+              currentTemplate={themeTemplate}
               onTemplateChange={setThemeTemplate}
             />
 

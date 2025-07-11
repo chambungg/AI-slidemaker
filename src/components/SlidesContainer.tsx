@@ -79,6 +79,49 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
     }
   }, [activeSlideId, slides]);
 
+  // 자동 저장 - tempSlide가 변경될 때마다 자동으로 적용
+  useEffect(() => {
+    if (!tempSlide || !hasUnsavedChanges) return;
+
+    const timer = setTimeout(() => {
+      // 최종 배경 이미지 생성 (블러와 그레이스케일 효과 포함)
+      const finalBackgroundImage = tempSlide.backgroundSeed 
+        ? generatePicsumImage(
+            aspectRatio.width,
+            aspectRatio.height,
+            tempSlide.backgroundSeed,
+            tempSlide.backgroundBlur || 2,
+            tempSlide.backgroundGrayscale || false
+          )
+        : tempSlide.backgroundImage;
+
+      const updatedSlide = {
+        ...tempSlide,
+        backgroundImage: finalBackgroundImage,
+        htmlContent: generateSlideHTML(
+          tempSlide.title,
+          tempSlide.content,
+          theme,
+          aspectRatio,
+          tempSlide.order,
+          undefined,
+          undefined,
+          tempSlide.slideLayout || tempSlide.template || 'title-top-content-bottom',
+          finalBackgroundImage,
+          tempSlide.backgroundBlur || 2,
+          tempSlide.themeOverlay || 0.3
+        ),
+        // 추가된 요소들도 포함
+        elements: tempSlide.elements || [],
+      };
+      
+      onSlideUpdate(updatedSlide);
+      setHasUnsavedChanges(false);
+    }, 500); // 500ms 디바운스
+
+    return () => clearTimeout(timer);
+  }, [tempSlide, hasUnsavedChanges, theme, aspectRatio, onSlideUpdate]);
+
   // 요소 업데이트 함수
   const updateElement = useCallback((elementId: string, updates: Partial<SlideElement>) => {
     if (!tempSlide) return;
@@ -562,31 +605,16 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                     <div className="flex items-center justify-between mb-4 p-3 bg-blue-50 rounded-lg">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium text-gray-700">슬라이드 편집</span>
+                        {hasUnsavedChanges && (
+                          <span className="text-xs text-orange-600 bg-orange-100 px-2 py-1 rounded-full">
+                            자동 저장 중...
+                          </span>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-2">
-                        {hasUnsavedChanges && (
-                          <button
-                            onClick={handleApplyChanges}
-                            className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors animate-pulse"
-                          >
-                            <Save className="w-4 h-4" />
-                            변경사항 적용
-                          </button>
-                        )}
-
-                        {!hasUnsavedChanges && (
-                          <div className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg">
-                            <Check className="w-4 h-4" />
-                            저장됨
-                          </div>
-                        )}
-                        
                         <button
-                          onClick={() => {
-                            handleApplyChanges();
-                            onSlideSelect('');
-                          }}
+                          onClick={() => onSlideSelect('')}
                           className="px-3 py-2 text-sm bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
                         >
                           편집 완료
@@ -805,6 +833,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                 minHeight: '20px',
                               }}
                               onMouseDown={(e) => {
+                                if (editingElement === element.id) return; // 편집 중일 때는 드래그 방지
                                 e.stopPropagation();
                                 handleMouseDown(e, element.id, 'move');
                               }}
@@ -836,7 +865,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                       }
                                     }}
                                     autoFocus
-                                    className="w-full h-full resize-none border-none outline-none bg-transparent"
+                                    className="w-full h-full resize-none border-none outline-none bg-white bg-opacity-90 rounded"
                                     style={{
                                       fontSize: element.fontSize,
                                       fontFamily: element.fontFamily,
@@ -864,6 +893,8 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                       display: 'flex',
                                       alignItems: 'center',
                                       justifyContent: element.textAlign === 'center' ? 'center' : element.textAlign === 'right' ? 'flex-end' : 'flex-start',
+                                      wordBreak: 'break-word',
+                                      whiteSpace: 'pre-wrap',
                                     }}
                                   >
                                     {element.content || '텍스트를 입력하세요'}
@@ -871,16 +902,38 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                 )
                               ) : (
                                 <div className="w-full h-full relative pointer-events-none">
-                                  {element.content ? (
-                                    <img
-                                      src={element.content}
-                                      alt="Slide element"
-                                      className="w-full h-full object-cover rounded pointer-events-none"
-                                      style={{
-                                        border: selectedElementId === element.id ? '2px solid #3B82F6' : '1px solid #E5E7EB',
-                                      }}
-                                      draggable={false}
-                                    />
+                                  {element.content && element.content.length > 0 ? (
+                                    element.content.startsWith('data:image') ? (
+                                      <img
+                                        src={element.content}
+                                        alt="Slide element"
+                                        className="w-full h-full object-cover rounded pointer-events-none"
+                                        style={{
+                                          border: selectedElementId === element.id ? '2px solid #3B82F6' : '1px solid #E5E7EB',
+                                        }}
+                                        draggable={false}
+                                        onError={(e) => {
+                                          console.error('Image load error:', e);
+                                          // 이미지 로드 실패 시 플레이스홀더 표시
+                                          (e.target as HTMLImageElement).style.display = 'none';
+                                        }}
+                                      />
+                                    ) : (
+                                      // URL이 아닌 텍스트인 경우 플레이스홀더 표시
+                                      <div 
+                                        className="w-full h-full border-2 border-dashed border-gray-300 rounded flex items-center justify-center bg-gray-50 hover:bg-gray-100 cursor-pointer pointer-events-auto"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleImageUpload(element.id);
+                                        }}
+                                      >
+                                        <div className="text-center">
+                                          <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                                          <p className="text-sm text-gray-500">이미지 업로드</p>
+                                          <p className="text-xs text-gray-400 mt-1">잘못된 이미지 형식</p>
+                                        </div>
+                                      </div>
+                                    )
                                   ) : (
                                     <div 
                                       className="w-full h-full border-2 border-dashed border-gray-300 rounded flex items-center justify-center bg-gray-50 hover:bg-gray-100 cursor-pointer pointer-events-auto"
