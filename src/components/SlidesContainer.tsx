@@ -1366,7 +1366,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                     >
                                       {FONT_FAMILIES.map((font) => (
                                         <option key={font} value={font}>
-                                          {font.split(',')[0]}
+                                          {font.includes(',') ? font.split(',')[0] : font}
                                         </option>
                                       ))}
                                     </select>
