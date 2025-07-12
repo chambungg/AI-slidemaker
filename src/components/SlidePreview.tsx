@@ -13,6 +13,8 @@ interface SlidePreviewProps {
   isActive: boolean;
   onClick: () => void;
   containerStyle?: React.CSSProperties;
+  showTypingEffect?: boolean;
+  typingDelay?: number;
 }
 
 export const SlidePreview: React.FC<SlidePreviewProps> = ({
@@ -25,6 +27,8 @@ export const SlidePreview: React.FC<SlidePreviewProps> = ({
   isActive,
   onClick,
   containerStyle,
+  showTypingEffect = false,
+  typingDelay = 0,
 }) => {
   const t = TRANSLATIONS[language];
   const [copied, setCopied] = useState(false);

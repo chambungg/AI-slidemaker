@@ -4,6 +4,7 @@ import { SlidePreview } from './SlidePreview';
 import { BackgroundController } from './BackgroundController';
 import { SlideTemplateSelector, SlideLayoutType } from './SlideTemplateSelector';
 import { SlideOrderController } from './SlideOrderController';
+import { TypingEffect } from './TypingEffect';
 import { TRANSLATIONS } from '../constants';
 import { generateSlideHTML } from '../utils/slideGenerator';
 import { generatePicsumImage } from '../utils/imageSearch';
@@ -103,10 +104,27 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [tempSlide, setTempSlide] = useState<Slide | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [showTypingEffect, setShowTypingEffect] = useState(false);
+  const [slidesDisplayCount, setSlidesDisplayCount] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const t = TRANSLATIONS[language];
+
+  // 새 슬라이드가 추가될 때 타이핑 효과 트리거
+  useEffect(() => {
+    if (slides.length > slidesDisplayCount) {
+      setShowTypingEffect(true);
+      setSlidesDisplayCount(slides.length);
+      
+      // 타이핑 효과 완료 후 자동으로 비활성화
+      const timer = setTimeout(() => {
+        setShowTypingEffect(false);
+      }, slides.length * 2000 + 3000); // 슬라이드 개수에 따라 시간 조정
+
+      return () => clearTimeout(timer);
+    }
+  }, [slides.length, slidesDisplayCount]);
 
   // 슬라이드 선택 시 임시 슬라이드 설정
   useEffect(() => {
@@ -149,7 +167,10 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
       tempSlide.slideLayout || tempSlide.template || 'title-top-content-bottom',
       finalBackgroundImage,
       tempSlide.backgroundBlur || 2,
-      tempSlide.themeOverlay || 0.3
+      tempSlide.themeOverlay || 0.3,
+      finalBackgroundImage ? undefined : tempSlide.backgroundColor,
+      tempSlide.backgroundPattern,
+      tempSlide.elements
     );
 
     // tempSlide의 htmlContent를 즉시 업데이트
@@ -198,7 +219,10 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
       tempSlide.slideLayout || tempSlide.template || 'title-top-content-bottom',
       tempSlide.backgroundImage,
       tempSlide.backgroundBlur || 2,
-      tempSlide.themeOverlay || 0.3
+      tempSlide.themeOverlay || 0.3,
+      tempSlide.backgroundImage ? undefined : tempSlide.backgroundColor,
+      tempSlide.backgroundPattern,
+      updatedElements
     );
 
     setTempSlide(prev => prev ? {
@@ -289,6 +313,48 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
 
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  const handleRotationStart = (e: React.MouseEvent, elementId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!tempSlide) return;
+    
+    const element = tempSlide.elements?.find(el => el.id === elementId);
+    if (!element) return;
+
+    const elementCenterX = element.x + element.width / 2;
+    const elementCenterY = element.y + element.height / 2;
+    
+    const getAngle = (clientX: number, clientY: number) => {
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!rect) return 0;
+      
+      const mouseX = clientX - rect.left - elementCenterX;
+      const mouseY = clientY - rect.top - elementCenterY;
+      
+      return Math.atan2(mouseY, mouseX) * (180 / Math.PI);
+    };
+
+    const startAngle = getAngle(e.clientX, e.clientY);
+    const initialRotation = element.rotation || 0;
+
+    const handleRotationMove = (e: MouseEvent) => {
+      const currentAngle = getAngle(e.clientX, e.clientY);
+      const deltaAngle = currentAngle - startAngle;
+      const newRotation = (initialRotation + deltaAngle) % 360;
+      
+      updateElement(elementId, { rotation: newRotation });
+    };
+
+    const handleRotationEnd = () => {
+      document.removeEventListener('mousemove', handleRotationMove);
+      document.removeEventListener('mouseup', handleRotationEnd);
+    };
+
+    document.addEventListener('mousemove', handleRotationMove);
+    document.addEventListener('mouseup', handleRotationEnd);
   };
 
   const handleTextEdit = (elementId: string, newContent: string) => {
@@ -456,7 +522,10 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
         tempSlide.slideLayout || tempSlide.template || 'title-top-content-bottom',
         finalBackgroundImage,
         tempSlide.backgroundBlur || 2,
-        tempSlide.themeOverlay || 0.3
+        tempSlide.themeOverlay || 0.3,
+        finalBackgroundImage ? undefined : tempSlide.backgroundColor,
+        tempSlide.backgroundPattern,
+        tempSlide.elements
       ),
       // 추가된 요소들도 포함
       elements: tempSlide.elements || [],
@@ -535,7 +604,10 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
         newTemplate,
         tempSlide.backgroundImage,
         tempSlide.backgroundBlur || 2,
-        tempSlide.themeOverlay || 0.3
+        tempSlide.themeOverlay || 0.3,
+        tempSlide.backgroundImage ? undefined : tempSlide.backgroundColor,
+        tempSlide.backgroundPattern,
+        tempSlide.elements
       ),
     };
 
@@ -662,21 +734,23 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
 
   const selectedElement = tempSlide?.elements?.find(el => el.id === selectedElementId);
 
-  // Calculate slide container size based on aspect ratio
+  // Calculate slide container size based on aspect ratio - responsive
   const getSlideContainerStyle = () => {
     const maxWidth = 800;
     const maxHeight = 600;
+    const minWidth = 320; // 최소 너비 (모바일)
+    const minHeight = 240; // 최소 높이
 
     const aspectRatioValue = aspectRatio.width / aspectRatio.height;
 
     let width, height;
 
     if (aspectRatioValue > maxWidth / maxHeight) {
-      width = maxWidth;
-      height = maxWidth / aspectRatioValue;
+      width = Math.max(minWidth, Math.min(maxWidth, window.innerWidth * 0.8));
+      height = width / aspectRatioValue;
     } else {
-      height = maxHeight;
-      width = maxHeight * aspectRatioValue;
+      height = Math.max(minHeight, Math.min(maxHeight, window.innerHeight * 0.5));
+      width = height * aspectRatioValue;
     }
 
     return {
@@ -693,13 +767,20 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
         <h2 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
           {t.generatedSlides} ({slides.length})
         </h2>
-        <button
-          onClick={() => onAddSlide()}
-          className="flex items-center gap-2 px-3 py-1 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          {t.addSlide}
-        </button>
+        <div className="flex items-center gap-3">
+          {/* Add slide at end button */}
+          <button
+            onClick={() => onAddSlide()}
+            className={`group flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+              isDarkMode 
+                ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-green-500/25' 
+                : 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg hover:shadow-green-500/25'
+            } hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2`}
+          >
+            <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-200" />
+            {t.addSlide}
+          </button>
+        </div>
       </div>
 
       <div className="space-y-6">
@@ -708,9 +789,18 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
             <div className="relative">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-gray-600">
-                    슬라이드 {index + 1}
-                  </span>
+                  {showTypingEffect && index < slidesDisplayCount ? (
+                    <TypingEffect
+                      text={`슬라이드 ${index + 1}`}
+                      speed={50}
+                      startDelay={index * 500}
+                      className="text-sm font-medium text-gray-600"
+                    />
+                  ) : (
+                    <span className="text-sm font-medium text-gray-600">
+                      슬라이드 {index + 1}
+                    </span>
+                  )}
                   <SlideOrderController
                     slideIndex={index}
                     totalSlides={slides.length}
@@ -743,6 +833,8 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                   isActive={false}
                   onClick={() => onSlideSelect(slide.id)}
                   containerStyle={getSlideContainerStyle()}
+                  showTypingEffect={showTypingEffect}
+                  typingDelay={index * 1000}
                 />
               ) : (
                 /* 선택된 슬라이드는 직접 편집 가능한 형태로 표시 */
@@ -760,7 +852,13 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                     <div className={`${isDarkMode ? 'bg-gray-800 border-blue-400' : 'bg-white border-blue-500'} rounded-lg border-2 p-4`}>
                       {/* 편집 컨트롤 바 */}
                       <div className={`flex items-center justify-between mb-4 p-3 ${isDarkMode ? 'bg-gray-700' : 'bg-blue-50'} rounded-lg`}>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
+                          {/* 슬라이드 번호 표시 */}
+                          <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${
+                            isDarkMode ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-800'
+                          }`}>
+                            <span className="text-xs font-semibold">{index + 1} / {slides.length}</span>
+                          </div>
                           <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>슬라이드 편집</span>
                           {hasUnsavedChanges && (
                             <span className="text-xs text-orange-600 bg-orange-100 px-2 py-1 rounded-full">
@@ -798,7 +896,10 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                     tempSlide.slideLayout || tempSlide.template || 'title-top-content-bottom',
                                     finalBackgroundImage,
                                     tempSlide.backgroundBlur || 2,
-                                    tempSlide.themeOverlay || 0.3
+                                    tempSlide.themeOverlay || 0.3,
+                                    finalBackgroundImage ? undefined : tempSlide.backgroundColor,
+                                    tempSlide.backgroundPattern,
+                                    tempSlide.elements
                                   ),
                                   elements: tempSlide.elements || [],
                                 };
@@ -818,10 +919,10 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                         </div>
                       </div>
 
-                      {/* 슬라이드 편집 영역 - 좌우 분할 */}
-                      <div className="flex h-full gap-4">
-                        {/* 좌측 슬라이드 편집 영역 - 70% */}
-                        <div className="flex-[7]">
+                      {/* 슬라이드 편집 영역 - 반응형 레이아웃 */}
+                      <div className="flex flex-col lg:flex-row h-full gap-4">
+                        {/* 슬라이드 편집 영역 - 모바일: 전체, 데스크톱: 70% */}
+                        <div className="flex-1 lg:flex-[7] min-h-0">
                           <div
                             ref={containerRef}
                             data-slide-id={slide.id}
@@ -1079,12 +1180,15 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
 
                                     {/* 회전 핸들 */}
                                     <div
-                                      className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-green-500 rounded-full cursor-pointer z-30"
+                                      className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-green-500 rounded-full cursor-pointer z-30 flex items-center justify-center"
                                       onMouseDown={(e) => {
                                         e.stopPropagation();
-                                        // 회전 로직은 나중에 구현
+                                        handleRotationStart(e, elementId);
                                       }}
-                                    />
+                                      title="회전하려면 드래그하세요"
+                                    >
+                                      <RotateCw className="w-2 h-2 text-white" />
+                                    </div>
                                   </>
                                 )}
                                 {element.type === 'text' ? (
@@ -1218,8 +1322,8 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                           </div>
                         </div>
 
-                        {/* 우측 컨트롤 패널 - 30% */}
-                        <div className="flex-[3] space-y-4">
+                        {/* 컨트롤 패널 - 모바일: 하단, 데스크톱: 우측 30% */}
+                        <div className="flex-1 lg:flex-[3] space-y-4 max-w-full lg:max-w-xs overflow-y-auto">
                           {/* 슬라이드 템플릿 선택 */}
                           <SlideTemplateSelector
                             currentTemplate={tempSlide.slideLayout || 'title-top-content-bottom'}
@@ -1268,20 +1372,32 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                             onBlurChange={handleBackgroundBlurChange}
                             onGrayscaleChange={handleBackgroundGrayscaleChange}
                             onBackgroundChange={(background) => {
-                              // 컬러 배경 적용 로직
-                              console.log('Color background selected:', background);
+                              if (!tempSlide) return;
+                              const updatedSlide = {
+                                ...tempSlide,
+                                backgroundColor: background,
+                                backgroundImage: undefined,
+                                backgroundSeed: undefined
+                              };
+                              setTempSlide(updatedSlide);
+                              setHasUnsavedChanges(true);
                             }}
                             onPatternChange={(pattern) => {
-                              // 패턴/필터 적용 로직
-                              console.log('Pattern/filter selected:', pattern);
+                              if (!tempSlide) return;
+                              const updatedSlide = {
+                                ...tempSlide,
+                                backgroundPattern: pattern === 'none' ? undefined : pattern
+                              };
+                              setTempSlide(updatedSlide);
+                              setHasUnsavedChanges(true);
                             }}
                             isDarkMode={isDarkMode}
                           />
 
-                          {/* 요소 추가 버튼 - 한 줄 배치 */}
+                          {/* 요소 추가 버튼 - 반응형 배치 */}
                           <div className={`${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-300'} rounded-lg border p-3 space-y-3`}>
                             <h4 className={`text-sm font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>요소 추가</h4>
-                            <div className="grid grid-cols-3 gap-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                               <button
                                 onClick={() => addNewElement('text')}
                                 className="flex items-center justify-center gap-1 px-2 py-2 text-xs bg-green-600 text-white hover:bg-green-700 rounded-lg transition-colors"
@@ -1308,9 +1424,9 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                         </div>
                       </div>
 
-                      {/* 선택된 요소의 속성 패널 - 슬라이드 아래 */}
+                      {/* 선택된 요소의 속성 패널 - 반응형 */}
                       {selectedElement && (
-                        <div className={`${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-300'} rounded-lg border p-4 space-y-4`}>
+                        <div className={`${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-300'} rounded-lg border p-3 lg:p-4 space-y-3 lg:space-y-4 max-h-96 lg:max-h-none overflow-y-auto`}>
                           <div className="flex items-center justify-between">
                             <h4 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
                               {selectedElement.type === 'text' ? '📝 텍스트 속성' : '🖼️ 이미지 속성'}
@@ -1349,7 +1465,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
 
                           {selectedElement.type === 'text' && (
                             <div className="space-y-3">
-                              <div className="grid grid-cols-3 gap-3">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 lg:gap-3">
                                 {/* 글자 크기 */}
                                 <div>
                                   <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>크기</label>
@@ -1395,7 +1511,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                               </div>
 
                               {/* 텍스트 정렬 및 굵기 */}
-                              <div className="grid grid-cols-2 gap-2">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                 <div>
                                   <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>굵기</label>
                                   <select
@@ -1434,7 +1550,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                               </div>
 
                               {/* 위치 및 크기 */}
-                              <div className="grid grid-cols-4 gap-1">
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1">
                                 <div>
                                   <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>X</label>
                                   <input
@@ -1470,6 +1586,28 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                     onChange={(e) => updateElement(selectedElement.id, { height: parseInt(e.target.value) || 30 })}
                                     className={`w-full px-1 py-1 border rounded text-xs ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
                                   />
+                                </div>
+                              </div>
+
+                              {/* 회전 */}
+                              <div>
+                                <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>회전 ({Math.round(selectedElement.rotation || 0)}°)</label>
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="range"
+                                    min="-180"
+                                    max="180"
+                                    value={selectedElement.rotation || 0}
+                                    onChange={(e) => updateElement(selectedElement.id, { rotation: parseInt(e.target.value) })}
+                                    className="flex-1"
+                                  />
+                                  <button
+                                    onClick={() => updateElement(selectedElement.id, { rotation: 0 })}
+                                    className={`px-2 py-1 text-xs rounded ${isDarkMode ? 'bg-gray-600 hover:bg-gray-500 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}
+                                    title="회전 초기화"
+                                  >
+                                    초기화
+                                  </button>
                                 </div>
                               </div>
                             </div>
@@ -1486,7 +1624,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                               </button>
 
                               {/* 위치 및 크기 */}
-                              <div className="grid grid-cols-4 gap-1">
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1">
                                 <div>
                                   <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>X</label>
                                   <input
@@ -1524,6 +1662,28 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                   />
                                 </div>
                               </div>
+
+                              {/* 회전 */}
+                              <div>
+                                <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>회전 ({Math.round(selectedElement.rotation || 0)}°)</label>
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="range"
+                                    min="-180"
+                                    max="180"
+                                    value={selectedElement.rotation || 0}
+                                    onChange={(e) => updateElement(selectedElement.id, { rotation: parseInt(e.target.value) })}
+                                    className="flex-1"
+                                  />
+                                  <button
+                                    onClick={() => updateElement(selectedElement.id, { rotation: 0 })}
+                                    className={`px-2 py-1 text-xs rounded ${isDarkMode ? 'bg-gray-600 hover:bg-gray-500 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}
+                                    title="회전 초기화"
+                                  >
+                                    초기화
+                                  </button>
+                                </div>
+                              </div>
                             </div>
                           )}
                         </div>
@@ -1535,14 +1695,26 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
             </div>
 
             {index < slides.length - 1 && (
-              <div className="flex justify-center">
-                <button
-                  onClick={() => onAddSlide(index)}
-                  className="flex items-center gap-1 px-2 py-1 text-xs text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <Plus className="w-3 h-3" />
-                  {t.addSlideHere}
-                </button>
+              <div className="flex justify-center py-4">
+                <div className="relative">
+                  {/* Decorative line */}
+                  <div className={`absolute top-1/2 left-0 right-0 h-px ${
+                    isDarkMode ? 'bg-gray-700' : 'bg-gray-200'
+                  } transform -translate-y-1/2`}></div>
+                  
+                  {/* Add button */}
+                  <button
+                    onClick={() => onAddSlide(index)}
+                    className={`group relative flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-full transition-all duration-200 ${
+                      isDarkMode 
+                        ? 'bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white border border-gray-600 hover:border-blue-500' 
+                        : 'bg-white hover:bg-blue-50 text-gray-600 hover:text-blue-600 border border-gray-300 hover:border-blue-300 shadow-sm hover:shadow-md'
+                    } hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
+                  >
+                    <Plus className="w-3 h-3 group-hover:rotate-180 transition-transform duration-300" />
+                    <span className="hidden sm:inline">{t.addSlideHere}</span>
+                  </button>
+                </div>
               </div>
             )}
           </React.Fragment>

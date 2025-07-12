@@ -1,4 +1,4 @@
-import { Slide, Theme, AspectRatio } from '../types';
+import { Slide, Theme, AspectRatio, SlideElement } from '../types';
 import { generateSlidesWithGemini, updateSlideWithGemini } from './geminiApi';
 import { SlideType } from '../components/SlideTypeSelector';
 import { ThemeFont } from '../components/ThemeFontSelector';
@@ -282,7 +282,10 @@ export const generateSlideHTML = (
   layout = 'title-center',
   backgroundImage?: string,
   backgroundBlur = 2,
-  themeOverlay = 0.3
+  themeOverlay = 0.3,
+  backgroundColor?: string,
+  backgroundPattern?: string,
+  elements?: SlideElement[]
 ): string => {
   // 화면 비율에 따른 동적 폰트 크기 계산
   const getResponsiveFontSizes = () => {
@@ -503,20 +506,67 @@ export const generateSlideHTML = (
 
   const borderStyles = getBorderStyles();
 
-  // 배경 이미지가 있을 때 테마 색상과 흐림 효과 적용
+  // 패턴 스타일 생성 함수
+  const getPatternStyle = (pattern: string) => {
+    switch (pattern) {
+      case 'grid-small':
+        return `background-image: 
+          linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0,0,0,0.1) 1px, transparent 1px);
+          background-size: 20px 20px;`;
+      case 'grid-large':
+        return `background-image: 
+          linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0,0,0,0.1) 1px, transparent 1px);
+          background-size: 50px 50px;`;
+      case 'grid-xlarge':
+        return `background-image: 
+          linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0,0,0,0.1) 1px, transparent 1px);
+          background-size: 100px 100px;`;
+      case 'lines-horizontal':
+        return `background-image: linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px);
+          background-size: 100% 30px;`;
+      case 'lines-vertical':
+        return `background-image: linear-gradient(90deg, rgba(0,0,0,0.1) 1px, transparent 1px);
+          background-size: 30px 100%;`;
+      case 'glassmorphic':
+        return `backdrop-filter: blur(10px);
+          background: rgba(255,255,255,0.1);
+          border: 1px solid rgba(255,255,255,0.2);`;
+      default:
+        return '';
+    }
+  };
+
+  // 배경 스타일 생성 함수
   const getBackgroundStyle = () => {
-    if (backgroundImage) {
+    let baseBackground = '';
+    
+    if (backgroundColor) {
+      // 컬러 배경 사용
+      baseBackground = `background: ${backgroundColor};`;
+    } else if (backgroundImage) {
+      // 이미지 배경 사용
       const themeHex = theme.primary.replace('#', '');
       const r = parseInt(themeHex.substr(0, 2), 16);
       const g = parseInt(themeHex.substr(2, 2), 16);
       const b = parseInt(themeHex.substr(4, 2), 16);
       const themeRgba = `rgba(${r}, ${g}, ${b}, ${themeOverlay})`;
       
-      return `
-        background: linear-gradient(${themeRgba}, ${themeRgba}), url('${backgroundImage}') center/cover;
-      `;
+      baseBackground = `background: linear-gradient(${themeRgba}, ${themeRgba}), url('${backgroundImage}') center/cover;`;
+    } else {
+      // 기본 그라데이션 배경
+      baseBackground = `background: linear-gradient(135deg, ${theme.primary}15, ${theme.secondary}15);`;
     }
-    return `background: linear-gradient(135deg, ${theme.primary}15, ${theme.secondary}15);`;
+
+    // 패턴 오버레이 추가
+    if (backgroundPattern && backgroundPattern !== 'none') {
+      const patternStyle = getPatternStyle(backgroundPattern);
+      return `${baseBackground} ${patternStyle}`;
+    }
+    
+    return baseBackground;
   };
   
   return `
@@ -602,6 +652,53 @@ export const generateSlideHTML = (
         </div>
         ` : ''}
       </div>
+      
+      ${elements && elements.length > 0 ? elements.map(element => `
+        <div style="
+          position: absolute;
+          left: ${element.x}px;
+          top: ${element.y}px;
+          width: ${element.width}px;
+          height: ${element.height}px;
+          transform: rotate(${element.rotation || 0}deg);
+          z-index: ${element.zIndex || 1};
+          background-color: ${element.backgroundColor || 'transparent'};
+          border: ${element.borderWidth || 0}px solid ${element.borderColor || 'transparent'};
+        ">
+          ${element.type === 'text' ? `
+            <div style="
+              width: 100%;
+              height: 100%;
+              font-size: ${element.fontSize}px;
+              font-family: ${element.fontFamily};
+              color: ${element.color};
+              font-weight: ${element.fontWeight};
+              text-align: ${element.textAlign};
+              line-height: 1.4;
+              padding: 8px;
+              display: flex;
+              align-items: center;
+              justify-content: ${element.textAlign === 'center' ? 'center' : element.textAlign === 'right' ? 'flex-end' : 'flex-start'};
+              word-break: break-word;
+              white-space: pre-wrap;
+              text-shadow: ${backgroundImage ? '2px 2px 4px rgba(0,0,0,0.8)' : 'none'};
+            ">
+              ${element.content || ''}
+            </div>
+          ` : element.type === 'image' && element.content ? `
+            <img 
+              src="${element.content}" 
+              alt="Slide element" 
+              style="
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                border-radius: 4px;
+              "
+            />
+          ` : ''}
+        </div>
+      `).join('') : ''}
     </div>
   `;
 };

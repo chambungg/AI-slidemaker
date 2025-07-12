@@ -27,6 +27,7 @@ export const BackgroundController: React.FC<BackgroundControllerProps> = ({
   onGrayscaleChange,
   onBackgroundChange,
   onPatternChange,
+  isDarkMode = false,
 }) => {
   // 후보 이미지들을 고정하기 위한 상태
   const [candidateSeeds, setCandidateSeeds] = useState<string[]>([]);
@@ -110,9 +111,13 @@ export const BackgroundController: React.FC<BackgroundControllerProps> = ({
   ];
 
   return (
-    <div className="bg-white rounded-lg border p-3 space-y-3">
+    <div className={`rounded-lg border p-3 space-y-3 transition-colors ${
+      isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-300'
+    }`}>
       <div className="flex items-center justify-between">
-        <h4 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+        <h4 className={`text-sm font-semibold flex items-center gap-2 ${
+          isDarkMode ? 'text-white' : 'text-gray-800'
+        }`}>
           <ImageIcon className="w-4 h-4" />
           배경 이미지
         </h4>
@@ -120,10 +125,14 @@ export const BackgroundController: React.FC<BackgroundControllerProps> = ({
         {/* 랜덤 이미지 버튼 */}
         <button
           onClick={handleRandomImage}
-          className="p-1 rounded hover:bg-gray-100 transition-colors"
+          className={`p-1 rounded transition-colors ${
+            isDarkMode 
+              ? 'hover:bg-gray-700 text-gray-300' 
+              : 'hover:bg-gray-100 text-gray-600'
+          }`}
           title="랜덤 이미지"
         >
-          <Shuffle className="w-4 h-4 text-gray-600" />
+          <Shuffle className="w-4 h-4" />
         </button>
       </div>
 
@@ -182,7 +191,9 @@ export const BackgroundController: React.FC<BackgroundControllerProps> = ({
 
       {/* 컬러 배경 옵션 */}
       <div className="space-y-2">
-        <h5 className="text-xs font-medium text-gray-600">컬러 배경</h5>
+        <h5 className={`text-xs font-medium ${
+          isDarkMode ? 'text-gray-200' : 'text-gray-700'
+        }`}>그라데이션/단색 배경</h5>
         
         {/* 그라데이션 배경 */}
         <div className="grid grid-cols-10 gap-1">
@@ -215,7 +226,9 @@ export const BackgroundController: React.FC<BackgroundControllerProps> = ({
       <div className="grid grid-cols-2 gap-3">
         {/* 블러 조절 */}
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">
+          <label className={`block text-xs font-medium mb-1 ${
+            isDarkMode ? 'text-gray-300' : 'text-gray-600'
+          }`}>
             블러 효과: {blur === 0 ? '없음' : blur}
           </label>
           <input
@@ -224,13 +237,17 @@ export const BackgroundController: React.FC<BackgroundControllerProps> = ({
             max="3"
             value={blur}
             onChange={(e) => onBlurChange(parseInt(e.target.value))}
-            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+            className={`w-full h-2 rounded-lg appearance-none cursor-pointer ${
+              isDarkMode ? 'bg-gray-600' : 'bg-gray-200'
+            }`}
           />
         </div>
 
         {/* 그레이스케일 토글 */}
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">
+          <label className={`block text-xs font-medium mb-1 ${
+            isDarkMode ? 'text-gray-300' : 'text-gray-600'
+          }`}>
             그레이스케일
           </label>
           <div className="flex items-center">
@@ -252,12 +269,18 @@ export const BackgroundController: React.FC<BackgroundControllerProps> = ({
 
       {/* 패턴/필터 선택 */}
       <div>
-        <label className="block text-xs font-medium text-gray-600 mb-1">
+        <label className={`block text-xs font-medium mb-1 ${
+          isDarkMode ? 'text-gray-300' : 'text-gray-600'
+        }`}>
           패턴/필터
         </label>
         <select
           onChange={(e) => onPatternChange && onPatternChange(e.target.value)}
-          className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+          className={`w-full px-2 py-1 border rounded text-xs ${
+            isDarkMode 
+              ? 'bg-gray-700 border-gray-600 text-white' 
+              : 'bg-white border-gray-300 text-gray-900'
+          }`}
           defaultValue="none"
         >
           {patterns.map((pattern) => (
@@ -269,7 +292,9 @@ export const BackgroundController: React.FC<BackgroundControllerProps> = ({
       </div>
 
       {/* 시드 정보 (개발용) */}
-      <div className="text-xs text-gray-400 truncate">
+      <div className={`text-xs truncate ${
+        isDarkMode ? 'text-gray-500' : 'text-gray-400'
+      }`}>
         시드: {currentSeed}
       </div>
     </div>

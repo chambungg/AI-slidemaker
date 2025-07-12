@@ -13,6 +13,7 @@ import { ApiSettings as ApiSettingsComponent } from './components/ApiSettings';
 import { LanguageSelector } from './components/LanguageSelector';
 import { SlideTypeSelector, SlideType } from './components/SlideTypeSelector';
 import { ResizablePanel } from './components/ResizablePanel';
+import { LoadingAnimation } from './components/LoadingAnimation';
 import { ThemeFontSelector, ThemeFont } from './components/ThemeFontSelector';
 import { ThemeTemplateSelector, ThemeTemplateOption } from './components/ThemeTemplateSelector';
 import { SlideBorderStyleSelector, SlideBorderStyle } from './components/SlideBorderStyleSelector';
@@ -572,6 +573,12 @@ function App() {
           )}
         </div>
       </div>
+
+      {/* Loading Animation Overlay */}
+      <LoadingAnimation 
+        isVisible={state.isGenerating} 
+        isDarkMode={isDarkMode}
+      />
     </div>
   );
 }

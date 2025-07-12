@@ -7,6 +7,8 @@ export interface Slide {
   imageUrl?: string;
   template?: string;
   backgroundImage?: string;
+  backgroundColor?: string;
+  backgroundPattern?: string;
   backgroundBlur?: number;
   themeOverlay?: number;
   backgroundSeed?: string;
