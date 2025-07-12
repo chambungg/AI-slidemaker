@@ -4,6 +4,7 @@ import { ASPECT_RATIOS, DEFAULT_THEMES, TRANSLATIONS } from './constants';
 import { AI_CONTENT_PROMPTS } from './constants/prompts';
 import { generateSlides, generateSlideHTML } from './utils/slideGenerator';
 import { exportToPDF, exportToHTML } from './utils/exportUtils';
+import { ExportModal } from './components/ExportModal';
 import { getDecryptedApiKey, saveEncryptedApiKey } from './utils/encryption';
 import { createDefaultBackgroundOptions, generatePicsumImage } from './utils/imageSearch';
 import { ThemeSelector } from './components/ThemeSelector';
@@ -52,6 +53,8 @@ function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   // 설정 팝업 상태
   const [showSettings, setShowSettings] = useState(false);
+  // 내보내기 모달 상태
+  const [showExportModal, setShowExportModal] = useState(false);
 
   const [apiSettings, setApiSettings] = useState<ApiSettings>({
     geminiApiKey: '',
@@ -370,10 +373,18 @@ function App() {
                 }`}
                 title={state.language === 'ko' ? '제미나이 API 입력 및 저장' : 'Gemini API Settings'}
               >
-                <Settings className="w-4 h-4" />
+                <div className="relative">
+                  <Settings className="w-4 h-4" />
+                  {apiSettings.isConfigured && (
+                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  )}
+                </div>
                 <span className="text-sm font-medium">
                   {state.language === 'ko' ? '제미나이 API' : 'Gemini API'}
                 </span>
+                {apiSettings.isConfigured && (
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                )}
               </button>
 
               {/* 설정 팝업: API 키 입력 및 저장 */}
@@ -420,22 +431,13 @@ function App() {
             </button>
             
             {state.slides.length > 0 && (
-              <>
-                <button
-                  onClick={() => exportToPDF(state.slides, state.aspectRatio)}
-                  className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-                >
-                  <FileText className="w-4 h-4" />
-                  {t.exportPDF}
-                </button>
-                <button
-                  onClick={() => exportToHTML(state.slides, state.aspectRatio)}
-                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                >
-                  <Globe className="w-4 h-4" />
-                  {t.exportHTML}
-                </button>
-              </>
+              <button
+                onClick={() => setShowExportModal(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+              >
+                <Download className="w-4 h-4" />
+                {state.language === 'ko' ? '내보내기' : 'Export'}
+              </button>
             )}
           </div>
         </div>
@@ -603,6 +605,17 @@ function App() {
         isVisible={state.isGenerating} 
         isDarkMode={isDarkMode}
       />
+
+      {/* Export Modal */}
+      {showExportModal && (
+        <ExportModal
+          slides={state.slides}
+          aspectRatio={state.aspectRatio}
+          language={state.language}
+          isDarkMode={isDarkMode}
+          onClose={() => setShowExportModal(false)}
+        />
+      )}
     </div>
   );
 }

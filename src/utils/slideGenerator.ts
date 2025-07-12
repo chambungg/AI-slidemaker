@@ -403,6 +403,30 @@ export const generateSlideHTML = (
     const currentWidth = aspectRatio.width;
     const scaleFactor = Math.min(currentWidth / baseWidth, 1.5); // 최대 1.5배까지만 확대
     
+    // 콘텐츠 분량 기반 추가 배율 계산
+    const getContentLengthMultiplier = () => {
+      const totalContentLength = title.length + content.length;
+      const titleLength = title.length;
+      const contentLength = content.length;
+      
+      // 카드뉴스와 이미지카드 타입에서만 콘텐츠 분량에 따른 배율 적용
+      if (slideType === 'cardnews' || slideType === 'imagecard') {
+        // 전체 텍스트가 짧을수록 폰트를 더 크게
+        if (totalContentLength < 50) {
+          return 1.8; // 매우 짧은 내용 - 큰 폰트
+        } else if (totalContentLength < 100) {
+          return 1.5; // 짧은 내용 - 중간 폰트
+        } else if (totalContentLength < 200) {
+          return 1.2; // 보통 내용 - 약간 큰 폰트
+        } else {
+          return 1.0; // 긴 내용 - 기본 폰트
+        }
+      }
+      return 1.0; // PPT 타입은 기본 배율
+    };
+    
+    const contentLengthMultiplier = getContentLengthMultiplier();
+    
     // 슬라이드 타입별 기본 크기 조정
     let titleMultiplier = 3.2;
     let contentMultiplier = 1.3;
@@ -410,17 +434,17 @@ export const generateSlideHTML = (
     switch (slideType) {
       case 'cardnews':
         // 카드뉴스: 큰 제목, 중간 내용
-        titleMultiplier = 4.0;
-        contentMultiplier = 1.6;
+        titleMultiplier = 4.0 * contentLengthMultiplier;
+        contentMultiplier = 1.8 * contentLengthMultiplier;
         break;
       case 'imagecard':
         // 이미지카드: 매우 큰 제목, 작은 내용
-        titleMultiplier = 5.0;
-        contentMultiplier = 1.2;
+        titleMultiplier = 5.5 * contentLengthMultiplier;
+        contentMultiplier = 1.5 * contentLengthMultiplier;
         break;
       case 'ppt':
       default:
-        // PPT: 표준 크기
+        // PPT: 표준 크기 (콘텐츠 분량 무관)
         titleMultiplier = 3.2;
         contentMultiplier = 1.3;
         break;
