@@ -143,15 +143,23 @@ export const SlidePreview: React.FC<SlidePreviewProps> = ({
       <div className="p-3">
         {activeTab === 'preview' ? (
           <div
-            className="w-full overflow-hidden relative"
-            style={containerStyle}
+            className="w-full overflow-hidden relative bg-white rounded-lg border border-gray-200"
+            style={{
+              ...containerStyle,
+              minHeight: '300px', // 최소 높이 보장
+              aspectRatio: containerStyle?.width && containerStyle?.height 
+                ? `${parseInt(containerStyle.width.toString())} / ${parseInt(containerStyle.height.toString())}`
+                : '16 / 9'
+            }}
           >
             <div
               className="slide-preview-content"
               style={{
                 transformOrigin: 'top left',
                 width: '100%',
-                height: '100%'
+                height: '100%',
+                transform: 'scale(1)', // 스케일 초기화
+                overflow: 'hidden'
               }}
               dangerouslySetInnerHTML={{ __html: slide.htmlContent }}
             />

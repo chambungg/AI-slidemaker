@@ -141,7 +141,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
     }
   }, [activeSlideId, slides]);
 
-  // 실시간 HTML 업데이트 - 편집 시 즉시 반영
+  // 실시간 HTML 업데이트 - 편집 시 즉시 반영 (테마, 폰트, 테두리 스타일 포함)
   useEffect(() => {
     if (!tempSlide) {return;}
 
@@ -183,6 +183,9 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
       backgroundImage: finalBackgroundImage,
       htmlContent: updatedHtmlContent,
     } : null);
+
+    // 변경사항이 있음을 표시 (테마/폰트/테두리 변경 시에도)
+    setHasUnsavedChanges(true);
 
   }, [tempSlide?.title, tempSlide?.content, tempSlide?.backgroundSeed, tempSlide?.backgroundBlur, tempSlide?.backgroundGrayscale, tempSlide?.slideLayout, tempSlide?.template, tempSlide?.backgroundType, tempSlide?.backgroundColor, tempSlide?.backgroundPattern, tempSlide?.elements, theme, aspectRatio, themeFont, slideBorderStyle]);
 
@@ -309,32 +312,51 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
 
   const handleMouseDown = (e: React.MouseEvent, elementId: string, action: 'move' | 'resize' = 'move') => {
     e.preventDefault();
+    e.stopPropagation();
     setIsDragging(true);
-    setDragStart({ x: e.clientX, y: e.clientY });
     setSelectedElementId(elementId);
 
+    const containerRect = containerRef.current?.getBoundingClientRect();
+    if (!containerRect) return;
+
+    const initialMouseX = e.clientX;
+    const initialMouseY = e.clientY;
+    
+    const element = tempSlide?.elements?.find(el => el.id === elementId);
+    if (!element) return;
+
+    const initialX = element.x;
+    const initialY = element.y;
+    const initialWidth = element.width;
+    const initialHeight = element.height;
+
     const handleMouseMove = (e: MouseEvent) => {
-      if (!tempSlide) {return;}
+      if (!tempSlide || !containerRect) return;
 
-      const deltaX = e.clientX - dragStart.x;
-      const deltaY = e.clientY - dragStart.y;
-
-      const element = tempSlide.elements?.find(el => el.id === elementId);
-      if (!element) {return;}
+      const deltaX = e.clientX - initialMouseX;
+      const deltaY = e.clientY - initialMouseY;
 
       if (action === 'move') {
+        const newX = Math.max(0, Math.min(initialX + deltaX, containerRect.width - element.width));
+        const newY = Math.max(0, Math.min(initialY + deltaY, containerRect.height - element.height));
+        
         updateElement(elementId, {
-          x: Math.max(0, element.x + deltaX),
-          y: Math.max(0, element.y + deltaY),
+          x: newX,
+          y: newY,
         });
       } else if (action === 'resize') {
+        const newWidth = Math.max(50, initialWidth + deltaX);
+        const newHeight = Math.max(30, initialHeight + deltaY);
+        
+        // 컨테이너 경계 내에서만 리사이즈
+        const maxWidth = containerRect.width - element.x;
+        const maxHeight = containerRect.height - element.y;
+        
         updateElement(elementId, {
-          width: Math.max(50, element.width + deltaX),
-          height: Math.max(30, element.height + deltaY),
+          width: Math.min(newWidth, maxWidth),
+          height: Math.min(newHeight, maxHeight),
         });
       }
-
-      setDragStart({ x: e.clientX, y: e.clientY });
     };
 
     const handleMouseUp = () => {
@@ -356,15 +378,15 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
     const element = tempSlide.elements?.find(el => el.id === elementId);
     if (!element) return;
 
+    const containerRect = containerRef.current?.getBoundingClientRect();
+    if (!containerRect) return;
+
     const elementCenterX = element.x + element.width / 2;
     const elementCenterY = element.y + element.height / 2;
     
     const getAngle = (clientX: number, clientY: number) => {
-      const rect = containerRef.current?.getBoundingClientRect();
-      if (!rect) return 0;
-      
-      const mouseX = clientX - rect.left - elementCenterX;
-      const mouseY = clientY - rect.top - elementCenterY;
+      const mouseX = (clientX - containerRect.left) - elementCenterX;
+      const mouseY = (clientY - containerRect.top) - elementCenterY;
       
       return Math.atan2(mouseY, mouseX) * (180 / Math.PI);
     };
@@ -375,7 +397,12 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
     const handleRotationMove = (e: MouseEvent) => {
       const currentAngle = getAngle(e.clientX, e.clientY);
       const deltaAngle = currentAngle - startAngle;
-      const newRotation = (initialRotation + deltaAngle) % 360;
+      let newRotation = (initialRotation + deltaAngle) % 360;
+      
+      // 음수 각도를 양수로 변환
+      if (newRotation < 0) {
+        newRotation += 360;
+      }
       
       updateElement(elementId, { rotation: newRotation });
     };
@@ -843,29 +870,46 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
 
   // Calculate slide container size based on aspect ratio - responsive
   const getSlideContainerStyle = () => {
-    const maxWidth = 800;
-    const maxHeight = 600;
-    const minWidth = 320; // 최소 너비 (모바일)
-    const minHeight = 240; // 최소 높이
+    // 편집 모드와 미리보기 모드에 따라 다른 크기 적용
+    const isEditMode = activeSlideId !== null;
+    
+    if (isEditMode) {
+      // 편집 모드: 더 큰 크기
+      const maxWidth = 900;
+      const maxHeight = 700;
+      const minWidth = 600;
+      const minHeight = 400;
+      
+      const aspectRatioValue = aspectRatio.width / aspectRatio.height;
+      let width, height;
 
-    const aspectRatioValue = aspectRatio.width / aspectRatio.height;
+      if (aspectRatioValue > maxWidth / maxHeight) {
+        width = Math.max(minWidth, Math.min(maxWidth, window.innerWidth * 0.6));
+        height = width / aspectRatioValue;
+      } else {
+        height = Math.max(minHeight, Math.min(maxHeight, window.innerHeight * 0.6));
+        width = height * aspectRatioValue;
+      }
 
-    let width, height;
-
-    if (aspectRatioValue > maxWidth / maxHeight) {
-      width = Math.max(minWidth, Math.min(maxWidth, window.innerWidth * 0.8));
-      height = width / aspectRatioValue;
+      return {
+        width: `${width}px`,
+        height: `${height}px`,
+        maxWidth: '100%',
+        margin: '0 auto'
+      };
     } else {
-      height = Math.max(minHeight, Math.min(maxHeight, window.innerHeight * 0.5));
-      width = height * aspectRatioValue;
-    }
+      // 미리보기 모드: 적당한 크기로 전체 내용이 보이도록
+      const containerWidth = 500; // 고정 너비
+      const aspectRatioValue = aspectRatio.width / aspectRatio.height;
+      const containerHeight = containerWidth / aspectRatioValue;
 
-    return {
-      width: `${width}px`,
-      height: `${height}px`,
-      maxWidth: '100%',
-      margin: '0 auto'
-    };
+      return {
+        width: `${containerWidth}px`,
+        height: `${containerHeight}px`,
+        maxWidth: '100%',
+        margin: '0 auto'
+      };
+    }
   };
 
   return (
@@ -1038,8 +1082,13 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                           <div
                             ref={containerRef}
                             data-slide-id={slide.id}
-                            className="relative border-2 border-dashed border-blue-300 rounded-lg overflow-hidden bg-white cursor-crosshair"
-                            style={getSlideContainerStyle()}
+                            className="relative overflow-hidden bg-white cursor-crosshair"
+                            style={{
+                              ...getSlideContainerStyle(),
+                              border: `${slideBorderStyle?.borderWidth || 1}px ${slideBorderStyle?.borderStyle || 'solid'} #3B82F6`,
+                              borderRadius: `${slideBorderStyle?.borderRadius || 8}px`,
+                              boxShadow: slideBorderStyle?.boxShadow || '0 2px 4px rgba(0,0,0,0.1)',
+                            }}
                             onClick={(e) => {
                               // 빈 공간 클릭 시 선택 해제
                               if (e.target === e.currentTarget) {
@@ -1050,21 +1099,31 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                             onDrop={handleDrop}
                             onDragOver={handleDragOver}
                           >
-                            {/* 기본 슬라이드 배경 */}
+                            {/* 기본 슬라이드 배경 - 실시간 업데이트 */}
                             <div
                               className="absolute inset-0 z-0"
                               style={{
-                                background: tempSlide.backgroundImage
-                                  ? (() => {
-                                      const themeHex = theme.primary.replace('#', '');
-                                      const r = parseInt(themeHex.substr(0, 2), 16);
-                                      const g = parseInt(themeHex.substr(2, 2), 16);
-                                      const b = parseInt(themeHex.substr(4, 2), 16);
-                                      const themeRgba = `rgba(${r}, ${g}, ${b}, ${tempSlide.themeOverlay || 0.3})`;
-                                      return `linear-gradient(${themeRgba}, ${themeRgba}), url(${tempSlide.backgroundImage}) center/cover`;
-                                    })()
-                                  : `linear-gradient(135deg, ${theme.primary}15, ${theme.secondary}15)`,
+                                background: (() => {
+                                  // 배경 타입에 따른 처리
+                                  if (tempSlide.backgroundType === 'color' && tempSlide.backgroundColor) {
+                                    // 단색 배경
+                                    return tempSlide.backgroundColor;
+                                  } else if (tempSlide.backgroundType === 'image' && tempSlide.backgroundImage) {
+                                    // 이미지 배경
+                                    const themeHex = theme.primary.replace('#', '');
+                                    const r = parseInt(themeHex.substr(0, 2), 16);
+                                    const g = parseInt(themeHex.substr(2, 2), 16);
+                                    const b = parseInt(themeHex.substr(4, 2), 16);
+                                    const themeRgba = `rgba(${r}, ${g}, ${b}, ${tempSlide.themeOverlay || 0.3})`;
+                                    return `linear-gradient(${themeRgba}, ${themeRgba}), url(${tempSlide.backgroundImage}) center/cover`;
+                                  } else {
+                                    // 기본 그라데이션
+                                    return `linear-gradient(135deg, ${theme.primary}15, ${theme.secondary}15)`;
+                                  }
+                                })(),
                                 filter: tempSlide.backgroundImage && tempSlide.backgroundBlur ? `blur(${tempSlide.backgroundBlur}px)` : 'none',
+                                backgroundImage: tempSlide.backgroundPattern ? `url("data:image/svg+xml,${encodeURIComponent(tempSlide.backgroundPattern)}")` : undefined,
+                                backgroundBlendMode: tempSlide.backgroundPattern ? 'overlay' : 'normal',
                               }}
                             />
 
@@ -1151,76 +1210,151 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                               return (
                                 <div className={`absolute inset-0 z-10 p-8 flex gap-4 ${layoutClasses.container}`}>
                                   <div
-                                    className={`${layoutClasses.titleWidth} relative hover:ring-1 hover:ring-blue-300 cursor-pointer`}
+                                    className={`${layoutClasses.titleWidth} relative select-none ${
+                                      selectedElementId === 'slide-title' 
+                                        ? 'ring-2 ring-blue-500' 
+                                        : 'hover:ring-1 hover:ring-blue-300'
+                                    } cursor-pointer`}
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setSelectedElementId('slide-title');
                                     }}
+                                    onDoubleClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditingElement('slide-title');
+                                    }}
                                   >
-                                    <h1
-                                      contentEditable
-                                      suppressContentEditableWarning
-                                      className={`${layoutClasses.titleSize} font-bold ${layoutClasses.titleAlign} mb-4 outline-none cursor-text hover:bg-blue-100 hover:bg-opacity-50 p-2 rounded transition-colors`}
-                                      style={{
-                                        color: tempSlide.backgroundImage ? '#FFFFFF' : theme.primary,
-                                        textShadow: tempSlide.backgroundImage ? '2px 2px 4px rgba(0,0,0,0.8)' : 'none',
-                                      }}
-                                      onInput={(e) => {
-                                        const newTitle = e.currentTarget.textContent || '';
-                                        handleSlideTextEdit('title', newTitle);
-                                      }}
-                                      onBlur={(e) => handleSlideTextEdit('title', e.target.textContent || '')}
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter' && !e.shiftKey) {
-                                          e.preventDefault();
-                                          e.currentTarget.blur();
-                                        }
-                                      }}
-                                      onClick={(e) => e.stopPropagation()}
-                                      dangerouslySetInnerHTML={{ __html: renderMarkdownPreview(tempSlide.title) }}
-                                    >
-                                    </h1>
+                                    {editingElement === 'slide-title' ? (
+                                      <textarea
+                                        value={tempSlide.title}
+                                        onChange={(e) => handleSlideTextEdit('title', e.target.value)}
+                                        onBlur={() => setEditingElement(null)}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter' && !e.shiftKey) {
+                                            e.preventDefault();
+                                            setEditingElement(null);
+                                          }
+                                          if (e.key === 'Escape') {
+                                            setEditingElement(null);
+                                          }
+                                        }}
+                                        autoFocus
+                                        className={`w-full resize-none border-2 border-blue-500 outline-none bg-white bg-opacity-90 rounded p-2 ${layoutClasses.titleSize} font-bold ${layoutClasses.titleAlign}`}
+                                        style={{
+                                          fontFamily: themeFont?.fontFamily || 'inherit',
+                                          fontWeight: themeFont?.effects?.fontWeight || 'bold',
+                                          letterSpacing: themeFont?.effects?.letterSpacing || 'normal',
+                                          minHeight: '60px',
+                                        }}
+                                      />
+                                    ) : (
+                                      <h1
+                                        className={`${layoutClasses.titleSize} font-bold ${layoutClasses.titleAlign} mb-4 outline-none cursor-pointer p-2 rounded transition-colors`}
+                                        style={{
+                                          color: tempSlide.backgroundImage ? '#FFFFFF' : theme.primary,
+                                          textShadow: tempSlide.backgroundImage ? '2px 2px 4px rgba(0,0,0,0.8)' : (themeFont?.effects?.textShadow || 'none'),
+                                          fontFamily: themeFont?.fontFamily || 'inherit',
+                                          fontWeight: themeFont?.effects?.fontWeight || 'bold',
+                                          letterSpacing: themeFont?.effects?.letterSpacing || 'normal',
+                                          textStroke: themeFont?.effects?.textStroke || 'none',
+                                          background: selectedElementId === 'slide-title' ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
+                                        }}
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        {tempSlide.title || '제목을 입력하세요'}
+                                      </h1>
+                                    )}
+                                    
+                                    {/* 선택된 요소의 컨트롤 핸들 */}
                                     {selectedElementId === 'slide-title' && (
-                                      <div className="absolute -top-2 -right-2 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
-                                        <div className="w-2 h-2 bg-white rounded-full"></div>
+                                      <div className="absolute inset-0 pointer-events-none">
+                                        {/* 편집 버튼 */}
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setEditingElement('slide-title');
+                                          }}
+                                          className="absolute -top-3 -right-3 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors z-50 pointer-events-auto shadow-lg"
+                                          title="편집"
+                                        >
+                                          <Type className="w-3 h-3" />
+                                        </button>
                                       </div>
                                     )}
                                   </div>
 
                                   {layout !== 'title-only' && (
                                     <div
-                                      className={`${layoutClasses.contentWidth} relative hover:ring-1 hover:ring-blue-300 cursor-pointer`}
+                                      className={`${layoutClasses.contentWidth} relative select-none ${
+                                        selectedElementId === 'slide-content' 
+                                          ? 'ring-2 ring-blue-500' 
+                                          : 'hover:ring-1 hover:ring-blue-300'
+                                      } cursor-pointer`}
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         setSelectedElementId('slide-content');
                                       }}
+                                      onDoubleClick={(e) => {
+                                        e.stopPropagation();
+                                        setEditingElement('slide-content');
+                                      }}
                                     >
-                                      <div
-                                        contentEditable
-                                        suppressContentEditableWarning
-                                        className={`${layoutClasses.contentSize} ${layoutClasses.contentAlign} outline-none cursor-text hover:bg-green-100 hover:bg-opacity-50 p-2 rounded transition-colors`}
-                                        style={{
-                                          color: tempSlide.backgroundImage ? '#F0F0F0' : theme.secondary,
-                                          textShadow: tempSlide.backgroundImage ? '1px 1px 2px rgba(0,0,0,0.7)' : 'none',
-                                        }}
-                                        onInput={(e) => {
-                                          const newContent = e.currentTarget.textContent || '';
-                                          handleSlideTextEdit('content', newContent);
-                                        }}
-                                        onBlur={(e) => handleSlideTextEdit('content', e.target.textContent || '')}
-                                        onKeyDown={(e) => {
-                                          if (e.key === 'Enter' && !e.shiftKey) {
-                                            e.preventDefault();
-                                            e.currentTarget.blur();
-                                          }
-                                        }}
-                                        onClick={(e) => e.stopPropagation()}
-                                        dangerouslySetInnerHTML={{ __html: renderMarkdownPreview(tempSlide.content) }}
-                                      >
-                                      </div>
+                                      {editingElement === 'slide-content' ? (
+                                        <textarea
+                                          value={tempSlide.content}
+                                          onChange={(e) => handleSlideTextEdit('content', e.target.value)}
+                                          onBlur={() => setEditingElement(null)}
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && !e.shiftKey) {
+                                              e.preventDefault();
+                                              setEditingElement(null);
+                                            }
+                                            if (e.key === 'Escape') {
+                                              setEditingElement(null);
+                                            }
+                                          }}
+                                          autoFocus
+                                          className={`w-full resize-none border-2 border-blue-500 outline-none bg-white bg-opacity-90 rounded p-2 ${layoutClasses.contentSize} ${layoutClasses.contentAlign}`}
+                                          style={{
+                                            fontFamily: themeFont?.fontFamily || 'inherit',
+                                            fontWeight: themeFont?.effects?.fontWeight || 'normal',
+                                            letterSpacing: themeFont?.effects?.letterSpacing || 'normal',
+                                            minHeight: '100px',
+                                          }}
+                                        />
+                                      ) : (
+                                        <div
+                                          className={`${layoutClasses.contentSize} ${layoutClasses.contentAlign} outline-none cursor-pointer p-2 rounded transition-colors`}
+                                          style={{
+                                            color: tempSlide.backgroundImage ? '#F0F0F0' : theme.secondary,
+                                            textShadow: tempSlide.backgroundImage ? '1px 1px 2px rgba(0,0,0,0.7)' : (themeFont?.effects?.textShadow || 'none'),
+                                            fontFamily: themeFont?.fontFamily || 'inherit',
+                                            fontWeight: themeFont?.effects?.fontWeight || 'normal',
+                                            letterSpacing: themeFont?.effects?.letterSpacing || 'normal',
+                                            textStroke: themeFont?.effects?.textStroke || 'none',
+                                            background: selectedElementId === 'slide-content' ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
+                                            whiteSpace: 'pre-wrap',
+                                          }}
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          {tempSlide.content || '내용을 입력하세요'}
+                                        </div>
+                                      )}
+                                      
+                                      {/* 선택된 요소의 컨트롤 핸들 */}
                                       {selectedElementId === 'slide-content' && (
-                                        <div className="absolute -top-2 -right-2 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
-                                          <div className="w-2 h-2 bg-white rounded-full"></div>
+                                        <div className="absolute inset-0 pointer-events-none">
+                                          {/* 편집 버튼 */}
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setEditingElement('slide-content');
+                                            }}
+                                            className="absolute -top-3 -right-3 w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center hover:bg-green-600 transition-colors z-50 pointer-events-auto shadow-lg"
+                                            title="편집"
+                                          >
+                                            <Type className="w-3 h-3" />
+                                          </button>
                                         </div>
                                       )}
                                     </div>
@@ -1233,25 +1367,29 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                             {tempSlide.elements?.map((element) => (
                               <div
                                 key={element.id}
-                                className={`absolute group z-20 ${
-                                  selectedElementId === element.id ? 'ring-2 ring-blue-500 ring-offset-1' : 'hover:ring-1 hover:ring-blue-300'
+                                className={`absolute group z-20 select-none ${
+                                  selectedElementId === element.id 
+                                    ? 'ring-2 ring-blue-500' 
+                                    : 'hover:ring-1 hover:ring-blue-300'
                                 }`}
                                 style={{
                                   left: element.x,
                                   top: element.y,
                                   width: element.width,
                                   height: element.height,
-                                  cursor: isDragging ? 'move' : 'pointer',
+                                  cursor: isDragging ? 'grabbing' : (selectedElementId === element.id ? 'grab' : 'pointer'),
                                   transform: `rotate(${element.rotation || 0}deg)`,
+                                  transformOrigin: 'center center',
                                   backgroundColor: element.backgroundColor || 'transparent',
                                   border: `${element.borderWidth || 0}px solid ${element.borderColor || 'transparent'}`,
                                   zIndex: element.zIndex || 1,
                                   minWidth: '20px',
                                   minHeight: '20px',
+                                  outline: selectedElementId === element.id ? '2px solid #3B82F6' : 'none',
+                                  outlineOffset: '2px',
                                 }}
                                 onMouseDown={(e) => {
-                                  if (editingElement === element.id) {return;} // 편집 중일 때는 드래그 방지
-                                  e.stopPropagation();
+                                  if (editingElement === element.id) return; // 편집 중일 때는 드래그 방지
                                   handleMouseDown(e, element.id, 'move');
                                 }}
                                 onClick={(e) => {
@@ -1266,42 +1404,55 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                   }
                                 }}
                               >
-                                {/* 선택된 요소의 컨트롤 */}
+                                {/* 선택된 요소의 컨트롤 핸들 */}
                                 {selectedElementId === element.id && (
-                                  <>
+                                  <div className="absolute inset-0 pointer-events-none">
                                     {/* 삭제 버튼 */}
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         deleteElement(element.id);
                                       }}
-                                      className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors z-30"
-                                      style={{ fontSize: '12px' }}
+                                      className="absolute -top-3 -right-3 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors z-50 pointer-events-auto shadow-lg"
+                                      title="삭제"
                                     >
-                                      ×
+                                      <Trash2 className="w-3 h-3" />
                                     </button>
 
-                                    {/* 리사이즈 핸들 */}
+                                    {/* 리사이즈 핸들 (우하단) */}
                                     <div
-                                      className="absolute -bottom-2 -right-2 w-4 h-4 bg-blue-500 rounded-full cursor-se-resize z-30"
+                                      className="absolute -bottom-2 -right-2 w-4 h-4 bg-blue-500 rounded-full cursor-se-resize z-50 pointer-events-auto shadow-lg hover:bg-blue-600 transition-colors"
                                       onMouseDown={(e) => {
                                         e.stopPropagation();
                                         handleMouseDown(e, element.id, 'resize');
                                       }}
+                                      title="크기 조절"
                                     />
 
-                                    {/* 회전 핸들 */}
+                                    {/* 회전 핸들 (상단 중앙) */}
                                     <div
-                                      className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-green-500 rounded-full cursor-pointer z-30 flex items-center justify-center"
+                                      className="absolute -top-6 left-1/2 transform -translate-x-1/2 w-6 h-6 bg-green-500 rounded-full cursor-grab z-50 pointer-events-auto shadow-lg hover:bg-green-600 transition-colors flex items-center justify-center"
                                       onMouseDown={(e) => {
                                         e.stopPropagation();
-                                        handleRotationStart(e, elementId);
+                                        handleRotationStart(e, element.id);
                                       }}
                                       title="회전하려면 드래그하세요"
                                     >
-                                      <RotateCw className="w-2 h-2 text-white" />
+                                      <RotateCw className="w-3 h-3 text-white" />
                                     </div>
-                                  </>
+
+                                    {/* 이동 핸들 (중앙) */}
+                                    <div
+                                      className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-6 bg-gray-500 rounded-full cursor-move z-50 pointer-events-auto shadow-lg hover:bg-gray-600 transition-colors flex items-center justify-center opacity-80"
+                                      onMouseDown={(e) => {
+                                        e.stopPropagation();
+                                        handleMouseDown(e, element.id, 'move');
+                                      }}
+                                      title="이동하려면 드래그하세요"
+                                    >
+                                      <Move className="w-3 h-3 text-white" />
+                                    </div>
+                                  </div>
                                 )}
                                 {element.type === 'text' ? (
                                   editingElement === element.id ? (
@@ -1405,30 +1556,6 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                   </div>
                                 )}
 
-                                {/* 선택된 요소의 컨트롤 핸들 */}
-                                {selectedElementId === element.id && (
-                                  <>
-                                    {/* 삭제 버튼 */}
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        deleteElement(element.id);
-                                      }}
-                                      className="absolute -top-3 -right-3 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 z-30 shadow-lg"
-                                    >
-                                      <Trash2 className="w-3 h-3" />
-                                    </button>
-
-                                    {/* 크기 조절 핸들 */}
-                                    <div
-                                      className="absolute -bottom-2 -right-2 w-4 h-4 bg-blue-500 rounded-full cursor-se-resize z-30"
-                                      onMouseDown={(e) => {
-                                        e.stopPropagation();
-                                        handleMouseDown(e, element.id, 'resize');
-                                      }}
-                                    />
-                                  </>
-                                )}
                               </div>
                             ))}
                           </div>
