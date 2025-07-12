@@ -656,14 +656,66 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
   };
 
   const exportSlideAsImage = async (slide: Slide) => {
+    // 새 창에서 이미지 생성 처리
+    const newWindow = window.open('', '_blank');
+    if (!newWindow) {
+      alert('팝업이 차단되었습니다. 팝업을 허용해주세요.');
+      return;
+    }
+
+    newWindow.document.write(`
+      <html>
+        <head>
+          <title>이미지 생성 중...</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              height: 100vh;
+              margin: 0;
+              background: #f5f5f5;
+            }
+            .container {
+              text-align: center;
+              padding: 2rem;
+              background: white;
+              border-radius: 8px;
+              box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            }
+            .spinner {
+              border: 4px solid #f3f3f3;
+              border-top: 4px solid #3498db;
+              border-radius: 50%;
+              width: 40px;
+              height: 40px;
+              animation: spin 1s linear infinite;
+              margin: 0 auto 1rem;
+            }
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="spinner"></div>
+            <h2>슬라이드 ${slide.order + 1} 이미지 생성 중...</h2>
+            <p>잠시만 기다려주세요.</p>
+          </div>
+        </body>
+      </html>
+    `);
+
     try {
       const { default: html2canvas } = await import('html2canvas');
-
-      // 실제 슬라이드 컨테이너를 찾아서 캡처
       const slideContainer = document.querySelector(`[data-slide-id="${slide.id}"]`) as HTMLElement;
 
+      let canvas;
       if (slideContainer) {
-        const canvas = await html2canvas(slideContainer, {
+        canvas = await html2canvas(slideContainer, {
           width: slideContainer.offsetWidth,
           height: slideContainer.offsetHeight,
           scale: 2,
@@ -671,14 +723,8 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
           useCORS: true,
           allowTaint: true,
         });
-
-        // Download image
-        const link = document.createElement('a');
-        link.download = `slide-${slide.order + 1}.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
       } else {
-        // Fallback: create temporary div
+        // Fallback
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = slide.htmlContent;
         tempDiv.style.position = 'absolute';
@@ -687,7 +733,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
         tempDiv.style.height = `${(800 * aspectRatio.height) / aspectRatio.width}px`;
         document.body.appendChild(tempDiv);
 
-        const canvas = await html2canvas(tempDiv, {
+        canvas = await html2canvas(tempDiv, {
           width: 800,
           height: (800 * aspectRatio.height) / aspectRatio.width,
           scale: 2,
@@ -697,15 +743,36 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
         });
 
         document.body.removeChild(tempDiv);
-
-        const link = document.createElement('a');
-        link.download = `slide-${slide.order + 1}.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
       }
+
+      // 완료 후 다운로드
+      newWindow.document.body.innerHTML = `
+        <div class="container">
+          <h2>✅ 이미지 생성 완료!</h2>
+          <p>다운로드가 시작됩니다...</p>
+          <button onclick="window.close()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">창 닫기</button>
+        </div>
+      `;
+
+      const link = document.createElement('a');
+      link.download = `slide-${slide.order + 1}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+
+      // 2초 후 창 자동 닫기
+      setTimeout(() => {
+        newWindow.close();
+      }, 2000);
+
     } catch (error) {
       console.error('Error exporting slide as image:', error);
-      alert('이미지 내보내기 중 오류가 발생했습니다.');
+      newWindow.document.body.innerHTML = `
+        <div class="container">
+          <h2>❌ 오류 발생</h2>
+          <p>이미지 생성 중 오류가 발생했습니다.</p>
+          <button onclick="window.close()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer;">창 닫기</button>
+        </div>
+      `;
     }
   };
 
@@ -875,6 +942,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                   containerStyle={getSlideContainerStyle()}
                   showTypingEffect={showTypingEffect}
                   typingDelay={index * 1000}
+                  isDarkMode={isDarkMode}
                 />
               ) : (
                 /* 선택된 슬라이드는 직접 편집 가능한 형태로 표시 */

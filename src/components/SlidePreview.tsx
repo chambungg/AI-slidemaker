@@ -15,6 +15,7 @@ interface SlidePreviewProps {
   containerStyle?: React.CSSProperties;
   showTypingEffect?: boolean;
   typingDelay?: number;
+  isDarkMode?: boolean;
 }
 
 export const SlidePreview: React.FC<SlidePreviewProps> = ({
@@ -29,6 +30,7 @@ export const SlidePreview: React.FC<SlidePreviewProps> = ({
   containerStyle,
   showTypingEffect = false,
   typingDelay = 0,
+  isDarkMode = false,
 }) => {
   const t = TRANSLATIONS[language];
   const [copied, setCopied] = useState(false);
@@ -48,14 +50,23 @@ export const SlidePreview: React.FC<SlidePreviewProps> = ({
     <div
       className={`
         border rounded-lg overflow-hidden transition-all cursor-pointer
-        ${isActive ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200 hover:border-gray-300'}
+        ${isActive 
+          ? 'border-blue-500 ring-2 ring-blue-200' 
+          : isDarkMode 
+            ? 'border-gray-600 hover:border-gray-500' 
+            : 'border-gray-200 hover:border-gray-300'
+        }
       `}
       onClick={onClick}
     >
-      <div className="flex items-center justify-between p-3 bg-gray-50 border-b border-gray-200">
+      <div className={`flex items-center justify-between p-3 border-b transition-colors ${
+        isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'
+      }`}>
         <div className="flex items-center gap-3">
           {/* 페이지 번호 */}
-          <div className="flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold">
+          <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold ${
+            isDarkMode ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-700'
+          }`}>
             {slideNumber}
           </div>
           
@@ -63,8 +74,15 @@ export const SlidePreview: React.FC<SlidePreviewProps> = ({
             <button
               onClick={(e) => { e.stopPropagation(); onTabChange('preview'); }}
               className={`
-                flex items-center gap-1 px-2 py-1 text-xs rounded
-                ${activeTab === 'preview' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}
+                flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors
+                ${activeTab === 'preview' 
+                  ? isDarkMode 
+                    ? 'bg-blue-900 text-blue-200' 
+                    : 'bg-blue-100 text-blue-700'
+                  : isDarkMode
+                    ? 'text-gray-300 hover:bg-gray-600'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }
               `}
             >
               <Eye className="w-3 h-3" />
@@ -73,8 +91,15 @@ export const SlidePreview: React.FC<SlidePreviewProps> = ({
             <button
               onClick={(e) => { e.stopPropagation(); onTabChange('code'); }}
               className={`
-                flex items-center gap-1 px-2 py-1 text-xs rounded
-                ${activeTab === 'code' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}
+                flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors
+                ${activeTab === 'code' 
+                  ? isDarkMode 
+                    ? 'bg-blue-900 text-blue-200' 
+                    : 'bg-blue-100 text-blue-700'
+                  : isDarkMode
+                    ? 'text-gray-300 hover:bg-gray-600'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }
               `}
             >
               <Code className="w-3 h-3" />
@@ -85,7 +110,14 @@ export const SlidePreview: React.FC<SlidePreviewProps> = ({
                 onClick={handleCopyHtml}
                 className={`
                   flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors
-                  ${copied ? 'bg-green-100 text-green-700' : 'text-gray-600 hover:bg-gray-100'}
+                  ${copied 
+                    ? isDarkMode 
+                      ? 'bg-green-900 text-green-200' 
+                      : 'bg-green-100 text-green-700'
+                    : isDarkMode
+                      ? 'text-gray-300 hover:bg-gray-600'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }
                 `}
                 title="HTML 코드 복사"
               >
@@ -98,7 +130,11 @@ export const SlidePreview: React.FC<SlidePreviewProps> = ({
         
         <button
           onClick={(e) => { e.stopPropagation(); onDelete(); }}
-          className="p-1 text-red-600 hover:bg-red-50 rounded"
+          className={`p-1 rounded transition-colors ${
+            isDarkMode 
+              ? 'text-red-400 hover:bg-red-900/20' 
+              : 'text-red-600 hover:bg-red-50'
+          }`}
         >
           <Trash2 className="w-3 h-3" />
         </button>
@@ -107,13 +143,24 @@ export const SlidePreview: React.FC<SlidePreviewProps> = ({
       <div className="p-3">
         {activeTab === 'preview' ? (
           <div
-            className="w-full overflow-hidden"
+            className="w-full overflow-hidden relative"
             style={containerStyle}
-            dangerouslySetInnerHTML={{ __html: slide.htmlContent }}
-          />
+          >
+            <div
+              className="slide-preview-content"
+              style={{
+                transformOrigin: 'top left',
+                width: '100%',
+                height: '100%'
+              }}
+              dangerouslySetInnerHTML={{ __html: slide.htmlContent }}
+            />
+          </div>
         ) : (
           <div 
-            className="text-xs bg-gray-100 p-3 rounded overflow-auto h-96 cursor-text"
+            className={`text-xs p-3 rounded overflow-auto h-96 cursor-text transition-colors ${
+              isDarkMode ? 'bg-gray-800 text-gray-300' : 'bg-gray-100 text-gray-900'
+            }`}
             onClick={(e) => {
               e.stopPropagation();
             }}
