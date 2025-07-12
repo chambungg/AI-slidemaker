@@ -141,24 +141,44 @@ export const SlidePreview: React.FC<SlidePreviewProps> = ({
           <div
             className="w-full overflow-hidden relative bg-white rounded-lg border border-gray-200"
             style={{
-              width: containerStyle?.width || '500px',
-              height: containerStyle?.height || '300px',
-              minHeight: '200px', // 최소 높이 보장
-              maxWidth: '100%'
+              width: containerStyle?.width || '100%',
+              height: containerStyle?.height || 'auto',
+              aspectRatio: `${slide.aspectRatio?.width || 16} / ${slide.aspectRatio?.height || 9}`,
+              maxWidth: '100%',
+              minHeight: '200px',
+              position: 'relative'
             }}
           >
             <div
-              className="slide-preview-content absolute inset-0"
+              className="slide-preview-wrapper"
               style={{
-                transformOrigin: 'top left',
-                transform: 'scale(1)', // 스케일 1로 고정
-                overflow: 'hidden',
+                position: 'absolute',
+                top: 0,
+                left: 0,
                 width: '100%',
                 height: '100%',
-                clipPath: 'inset(0)' // 컨테이너 경계 밖 내용 잘라내기
+                overflow: 'hidden'
               }}
-              dangerouslySetInnerHTML={{ __html: slide.htmlContent }}
-            />
+            >
+              <div
+                className="slide-preview-content"
+                style={{
+                  width: `${slide.aspectRatio?.width || 1920}px`,
+                  height: `${slide.aspectRatio?.height || 1080}px`,
+                  transform: `scale(${containerStyle?.width && containerStyle?.height ? 
+                    Math.min(
+                      parseInt(containerStyle.width) / (slide.aspectRatio?.width || 1920),
+                      parseInt(containerStyle.height) / (slide.aspectRatio?.height || 1080)
+                    ) : 
+                    0.26})`,
+                  transformOrigin: 'top left',
+                  position: 'absolute',
+                  top: 0,
+                  left: 0
+                }}
+                dangerouslySetInnerHTML={{ __html: slide.htmlContent }}
+              />
+            </div>
           </div>
         ) : (
           <div 

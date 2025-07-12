@@ -967,7 +967,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
       };
     } else {
       // 미리보기 모드: 적당한 크기로 전체 내용이 보이도록
-      const containerWidth = 500; // 고정 너비
+      const containerWidth = Math.min(500, window.innerWidth * 0.9); // 반응형 너비
       const aspectRatioValue = aspectRatio.width / aspectRatio.height;
       const containerHeight = containerWidth / aspectRatioValue;
 
@@ -1025,7 +1025,10 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
               {/* 슬라이드가 선택되지 않았을 때는 일반 미리보기 */}
               {activeSlideId !== slide.id ? (
                 <SlidePreview
-                  slide={slide}
+                  slide={{
+                    ...slide,
+                    aspectRatio: aspectRatio
+                  }}
                   slideNumber={index + 1}
                   activeTab={activeTab}
                   language={language}
@@ -1038,8 +1041,6 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                   isActive={false}
                   onClick={() => onSlideSelect(slide.id)}
                   containerStyle={getSlideContainerStyle()}
-                  showTypingEffect={showTypingEffect}
-                  typingDelay={index * 1000}
                   isDarkMode={isDarkMode}
                 />
               ) : (

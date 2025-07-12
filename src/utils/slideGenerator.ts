@@ -214,6 +214,7 @@ export const generateSlides = async (
         elements: [],
         history: [],
         historyIndex: 0,
+        aspectRatio,
       };
     });
 
@@ -306,6 +307,7 @@ const generateSlidesSimple = (
             elements: [],
             history: [],
             historyIndex: 0,
+            aspectRatio,
           });
           
           currentSlideContent = sentence.trim() + '.';
@@ -335,6 +337,7 @@ const generateSlidesSimple = (
           elements: [],
           history: [],
           historyIndex: 0,
+          aspectRatio,
         });
       }
     } else {
@@ -358,6 +361,7 @@ const generateSlidesSimple = (
         elements: [],
         history: [],
         historyIndex: 0,
+        aspectRatio,
       });
     }
   });
@@ -375,6 +379,7 @@ const generateSlidesSimple = (
     elements: [],
     history: [],
     historyIndex: 0,
+    aspectRatio,
   }];
 };
 
@@ -910,6 +915,7 @@ export const updateSlideContent = async (
         undefined, // elements
         'ppt' // 기본값
       ),
+      aspectRatio,
     };
   } catch (error) {
     // Error handled without logging sensitive information
@@ -940,6 +946,7 @@ export const updateSlideContent = async (
         undefined, // elements
         'ppt' // 기본값
       ),
+      aspectRatio,
     };
   }
 };

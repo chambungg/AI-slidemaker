@@ -20,6 +20,7 @@ export interface Slide {
   historyIndex?: number;
   titlePosition?: ElementPosition;
   contentPosition?: ElementPosition;
+  aspectRatio?: AspectRatio;
 }
 
 export interface ElementPosition {
