@@ -42,6 +42,9 @@ export const BackgroundController: React.FC<BackgroundControllerProps> = ({
   // 이미지 로딩 상태 관리
   const [loadingImages, setLoadingImages] = useState<{ [key: string]: boolean }>({});
   const [currentImageLoading, setCurrentImageLoading] = useState(false);
+  // 이미지 에러 상태 관리
+  const [errorImages, setErrorImages] = useState<{ [key: string]: boolean }>({});
+  const [currentImageError, setCurrentImageError] = useState(false);
 
   // currentSeed가 변경될 때만 후보 이미지들 재생성
   useEffect(() => {
@@ -56,6 +59,10 @@ export const BackgroundController: React.FC<BackgroundControllerProps> = ({
     });
     setLoadingImages(initialLoadingState);
     setCurrentImageLoading(true);
+    
+    // 에러 상태도 초기화
+    setErrorImages({});
+    setCurrentImageError(false);
   }, [currentSeed.split('-alt-')[0]]); // 메인 시드가 변경될 때만
 
   const handleRandomImage = () => {
@@ -68,10 +75,44 @@ export const BackgroundController: React.FC<BackgroundControllerProps> = ({
   // 이미지 로딩 완료 핸들러
   const handleImageLoad = (seed: string) => {
     setLoadingImages(prev => ({ ...prev, [seed]: false }));
+    setErrorImages(prev => ({ ...prev, [seed]: false }));
   };
 
   const handleCurrentImageLoad = () => {
     setCurrentImageLoading(false);
+    setCurrentImageError(false);
+  };
+
+  // 이미지 에러 핸들러
+  const handleImageError = (seed: string) => {
+    setLoadingImages(prev => ({ ...prev, [seed]: false }));
+    setErrorImages(prev => ({ ...prev, [seed]: true }));
+  };
+
+  const handleCurrentImageError = () => {
+    setCurrentImageLoading(false);
+    setCurrentImageError(true);
+  };
+
+  // 이미지 재로드 핸들러
+  const handleImageReload = (seed: string) => {
+    setLoadingImages(prev => ({ ...prev, [seed]: true }));
+    setErrorImages(prev => ({ ...prev, [seed]: false }));
+    // 이미지 강제 새로고침을 위해 timestamp 추가
+    const img = new Image();
+    img.onload = () => handleImageLoad(seed);
+    img.onerror = () => handleImageError(seed);
+    img.src = `${generatePicsumImage(90, 90, seed, blur, grayscale)}?t=${Date.now()}`;
+  };
+
+  const handleCurrentImageReload = () => {
+    setCurrentImageLoading(true);
+    setCurrentImageError(false);
+    // 메인 이미지 강제 새로고침
+    const img = new Image();
+    img.onload = () => handleCurrentImageLoad();
+    img.onerror = () => handleCurrentImageError();
+    img.src = `${currentImageUrl}?t=${Date.now()}`;
   };
 
   // 그라데이션 배경 옵션들
@@ -183,31 +224,49 @@ export const BackgroundController: React.FC<BackgroundControllerProps> = ({
             <div className="flex h-20 rounded border overflow-hidden">
               {/* 현재 슬라이드 이미지 (왼쪽 절반) */}
               <div className="flex-1 relative">
-                <img
-                  src={currentImageUrl}
-                  alt="Current slide background"
-                  className="w-full h-full object-cover"
-                  onLoad={handleCurrentImageLoad}
-                  onError={handleCurrentImageLoad}
-                />
-                <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center">
-                  <span className="text-white text-xs font-medium">현재</span>
-                </div>
+                {currentImageError ? (
+                  <div className="w-full h-full bg-red-100 flex flex-col items-center justify-center">
+                    <span className="text-red-500 text-xs mb-1">로드 실패</span>
+                    <button
+                      onClick={handleCurrentImageReload}
+                      className="text-red-600 text-xs underline hover:text-red-800"
+                    >
+                      다시 시도
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <img
+                      src={currentImageUrl}
+                      alt="Current slide background"
+                      className="w-full h-full object-cover"
+                      onLoad={handleCurrentImageLoad}
+                      onError={handleCurrentImageError}
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center">
+                      <span className="text-white text-xs font-medium">현재</span>
+                    </div>
+                  </>
+                )}
               </div>
               
-              {/* 이전 슬라이드 이미지 (오른쪽 절반) */}
+              {/* 이전 슬라이드 이미지 (오른쪽 절반) - 클릭 가능 */}
               <div className="flex-1 relative border-l">
                 {previousSlideBackgroundSeed ? (
-                  <>
+                  <button
+                    onClick={() => onSeedChange(previousSlideBackgroundSeed)}
+                    className="w-full h-full relative hover:border-blue-300 transition-colors"
+                    title="이전 슬라이드 배경 적용"
+                  >
                     <img
                       src={generatePicsumImage(width, height, previousSlideBackgroundSeed, blur, grayscale)}
                       alt="Previous slide background"
                       className="w-full h-full object-cover"
                     />
-                    <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black bg-opacity-20 hover:bg-opacity-10 flex items-center justify-center transition-opacity">
                       <span className="text-white text-xs font-medium">이전</span>
                     </div>
-                  </>
+                  </button>
                 ) : (
                   <div className="w-full h-full bg-gray-200 flex items-center justify-center">
                     <span className="text-gray-500 text-xs">첫 슬라이드</span>
@@ -224,27 +283,37 @@ export const BackgroundController: React.FC<BackgroundControllerProps> = ({
               {candidateSeeds.map((candidateSeed, index) => {
                 const candidateUrl = generatePicsumImage(90, 90, candidateSeed, blur, grayscale); // 90x90px로 최적화
                 const isLoading = loadingImages[candidateSeed];
+                const hasError = errorImages[candidateSeed];
                 
                 return (
                   <button
                     key={candidateSeed}
-                    onClick={() => onSeedChange(candidateSeed)}
+                    onClick={() => hasError ? handleImageReload(candidateSeed) : onSeedChange(candidateSeed)}
                     className="relative aspect-square rounded overflow-hidden border hover:border-blue-300 transition-colors"
-                    title={`후보 이미지 ${index + 1}`}
+                    title={hasError ? `이미지 다시 로드` : `후보 이미지 ${index + 1}`}
                   >
                     {isLoading && (
                       <div className="absolute inset-0 bg-gray-200 rounded flex items-center justify-center z-10">
                         <Loader className="w-4 h-4 animate-spin text-gray-400" />
                       </div>
                     )}
-                    <img
-                      src={candidateUrl}
-                      alt={`Candidate ${index + 1}`}
-                      className="w-full h-full object-cover"
-                      onLoad={() => handleImageLoad(candidateSeed)}
-                      onError={() => handleImageLoad(candidateSeed)}
-                    />
-                    <div className="absolute inset-0 bg-black bg-opacity-10 hover:bg-opacity-0 transition-opacity" />
+                    {hasError ? (
+                      <div className="w-full h-full bg-red-100 flex flex-col items-center justify-center text-red-500">
+                        <span className="text-xs mb-1">오류</span>
+                        <span className="text-xs">↻</span>
+                      </div>
+                    ) : (
+                      <>
+                        <img
+                          src={candidateUrl}
+                          alt={`Candidate ${index + 1}`}
+                          className="w-full h-full object-cover"
+                          onLoad={() => handleImageLoad(candidateSeed)}
+                          onError={() => handleImageError(candidateSeed)}
+                        />
+                        <div className="absolute inset-0 bg-black bg-opacity-10 hover:bg-opacity-0 transition-opacity" />
+                      </>
+                    )}
                   </button>
                 );
               })}

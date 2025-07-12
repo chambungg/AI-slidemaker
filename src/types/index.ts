@@ -18,6 +18,16 @@ export interface Slide {
   elements?: SlideElement[];
   history?: SlideState[];
   historyIndex?: number;
+  titlePosition?: ElementPosition;
+  contentPosition?: ElementPosition;
+}
+
+export interface ElementPosition {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  fontSize?: number;
 }
 
 export interface SlideElement {

@@ -433,14 +433,14 @@ export const generateSlideHTML = (
     
     switch (slideType) {
       case 'cardnews':
-        // 카드뉴스: 큰 제목, 중간 내용
-        titleMultiplier = 4.0 * contentLengthMultiplier;
-        contentMultiplier = 1.8 * contentLengthMultiplier;
+        // 카드뉴스: 큰 제목, 중간 내용 (기본 크기 증가)
+        titleMultiplier = 5.0 * contentLengthMultiplier;
+        contentMultiplier = 2.2 * contentLengthMultiplier;
         break;
       case 'imagecard':
-        // 이미지카드: 매우 큰 제목, 작은 내용
-        titleMultiplier = 5.5 * contentLengthMultiplier;
-        contentMultiplier = 1.5 * contentLengthMultiplier;
+        // 이미지카드: 매우 큰 제목, 작은 내용 (기본 크기 증가)
+        titleMultiplier = 6.5 * contentLengthMultiplier;
+        contentMultiplier = 1.8 * contentLengthMultiplier;
         break;
       case 'ppt':
       default:

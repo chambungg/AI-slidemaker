@@ -158,7 +158,8 @@ export const SlidePreview: React.FC<SlidePreviewProps> = ({
                 transform: 'scale(1)', // 스케일 1로 고정
                 overflow: 'hidden',
                 width: '100%',
-                height: '100%'
+                height: '100%',
+                clipPath: 'inset(0)' // 컨테이너 경계 밖 내용 잘라내기
               }}
               dangerouslySetInnerHTML={{ __html: slide.htmlContent }}
             />
