@@ -60,7 +60,7 @@ export const generateSlides = async (
   apiKey: string,
   language: 'ko' | 'en',
   slideType: SlideType = 'ppt',
-  slideCount: number = 5,
+  slideCount = 5,
   templateStyle?: string
 ): Promise<Slide[]> => {
   try {
@@ -279,10 +279,10 @@ export const generateSlideHTML = (
   slideIndex: number,
   themeFont?: ThemeFont,
   borderStyle?: SlideBorderStyle,
-  layout: string = 'title-center',
+  layout = 'title-center',
   backgroundImage?: string,
-  backgroundBlur: number = 2,
-  themeOverlay: number = 0.3
+  backgroundBlur = 2,
+  themeOverlay = 0.3
 ): string => {
   // 화면 비율에 따른 동적 폰트 크기 계산
   const getResponsiveFontSizes = () => {
@@ -469,12 +469,12 @@ export const generateSlideHTML = (
   
   // 폰트 스타일 적용
   const getFontStyles = () => {
-    if (!themeFont) return {
+    if (!themeFont) {return {
       fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
       textShadow: 'none',
       letterSpacing: 'normal',
       fontWeight: '400'
-    };
+    };}
     
     return {
       fontFamily: themeFont.fontFamily,
@@ -488,11 +488,11 @@ export const generateSlideHTML = (
 
   // 테두리 스타일 적용
   const getBorderStyles = () => {
-    if (!borderStyle) return {
+    if (!borderStyle) {return {
       border: `2px solid ${theme.primary}30`,
       borderRadius: '16px',
       boxShadow: '0 8px 32px rgba(0,0,0,0.1)'
-    };
+    };}
     
     return {
       border: `${borderStyle.borderWidth}px ${borderStyle.borderStyle} ${theme.primary}60`,

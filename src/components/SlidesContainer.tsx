@@ -40,7 +40,7 @@ const FONT_FAMILIES = [
 
 // 간단한 마크다운 렌더러 (미리보기용)
 const renderMarkdownPreview = (text: string): string => {
-  if (!text) return '';
+  if (!text) {return '';}
   return text
     // 헤딩 처리
     .replace(/### (.*?)$/gm, '<span style="font-size: 1.2em; font-weight: bold;">$1</span>')
@@ -125,7 +125,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
 
   // 실시간 HTML 업데이트 - 편집 시 즉시 반영
   useEffect(() => {
-    if (!tempSlide) return;
+    if (!tempSlide) {return;}
 
     // tempSlide가 변경될 때마다 즉시 HTML 업데이트
     const finalBackgroundImage = tempSlide.backgroundSeed
@@ -163,7 +163,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
 
   // 자동 저장 - 변경사항을 실제 슬라이드에 저장
   useEffect(() => {
-    if (!tempSlide || !hasUnsavedChanges) return;
+    if (!tempSlide || !hasUnsavedChanges) {return;}
 
     const timer = setTimeout(() => {
       const updatedSlide = {
@@ -180,7 +180,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
 
   // 요소 업데이트 함수 - HTML 직접 업데이트 포함
   const updateElement = useCallback((elementId: string, updates: Partial<SlideElement>) => {
-    if (!tempSlide) return;
+    if (!tempSlide) {return;}
 
     const updatedElements = tempSlide.elements?.map(el =>
       el.id === elementId ? { ...el, ...updates } : el
@@ -210,7 +210,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
   }, [tempSlide, theme, aspectRatio, themeFont, slideBorderStyle]);
 
   const addNewElement = (type: 'text' | 'image' = 'text') => {
-    if (!tempSlide) return;
+    if (!tempSlide) {return;}
 
     const containerWidth = 800;
     const containerHeight = (800 * aspectRatio.height) / aspectRatio.width;
@@ -240,7 +240,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
   };
 
   const deleteElement = (elementId: string) => {
-    if (!tempSlide) return;
+    if (!tempSlide) {return;}
 
     const updatedElements = tempSlide.elements?.filter(el => el.id !== elementId) || [];
     setTempSlide(prev => prev ? {
@@ -258,13 +258,13 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
     setSelectedElementId(elementId);
 
     const handleMouseMove = (e: MouseEvent) => {
-      if (!tempSlide) return;
+      if (!tempSlide) {return;}
 
       const deltaX = e.clientX - dragStart.x;
       const deltaY = e.clientY - dragStart.y;
 
       const element = tempSlide.elements?.find(el => el.id === elementId);
-      if (!element) return;
+      if (!element) {return;}
 
       if (action === 'move') {
         updateElement(elementId, {
@@ -296,7 +296,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
   };
 
   const handleSlideTextEdit = (field: 'title' | 'content', newContent: string) => {
-    if (!tempSlide) return;
+    if (!tempSlide) {return;}
 
     setTempSlide(prev => prev ? {
       ...prev,
@@ -429,7 +429,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
   };
 
   const handleApplyChanges = () => {
-    if (!tempSlide) return;
+    if (!tempSlide) {return;}
 
     // 최종 배경 이미지 생성 (블러와 그레이스케일 효과 포함)
     const finalBackgroundImage = tempSlide.backgroundSeed
@@ -472,7 +472,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
 
   // 배경 이미지 업데이트 함수들
   const handleBackgroundSeedChange = (seed: string) => {
-    if (!tempSlide) return;
+    if (!tempSlide) {return;}
 
     const newBackgroundImage = generatePicsumImage(
       aspectRatio.width,
@@ -493,7 +493,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
   };
 
   const handleBackgroundBlurChange = (blur: number) => {
-    if (!tempSlide) return;
+    if (!tempSlide) {return;}
 
     const updatedSlide = {
       ...tempSlide,
@@ -505,7 +505,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
   };
 
   const handleBackgroundGrayscaleChange = (grayscale: boolean) => {
-    if (!tempSlide) return;
+    if (!tempSlide) {return;}
 
     const updatedSlide = {
       ...tempSlide,
@@ -518,7 +518,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
 
   // 슬라이드 템플릿 변경 핸들러
   const handleTemplateChange = (newTemplate: SlideLayoutType) => {
-    if (!tempSlide) return;
+    if (!tempSlide) {return;}
 
     const updatedSlide = {
       ...tempSlide,
@@ -599,7 +599,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
 
   // 객체 배치 템플릿
   const applyLayoutTemplate = (template: 'center' | 'left' | 'right') => {
-    if (!tempSlide || !tempSlide.elements) return;
+    if (!tempSlide || !tempSlide.elements) {return;}
 
     const containerWidth = 800; // 기본 슬라이드 너비
     const containerHeight = (800 * aspectRatio.height) / aspectRatio.width;
@@ -637,11 +637,11 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
 
   // 선택된 요소 정렬 함수
   const applyElementAlignment = (alignment: 'left' | 'center' | 'right') => {
-    if (!tempSlide || !selectedElementId) return;
+    if (!tempSlide || !selectedElementId) {return;}
 
     const containerWidth = 800;
     const element = tempSlide.elements?.find(el => el.id === selectedElementId);
-    if (!element) return;
+    if (!element) {return;}
 
     let newX = element.x;
 
@@ -1037,7 +1037,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                   minHeight: '20px',
                                 }}
                                 onMouseDown={(e) => {
-                                  if (editingElement === element.id) return; // 편집 중일 때는 드래그 방지
+                                  if (editingElement === element.id) {return;} // 편집 중일 때는 드래그 방지
                                   e.stopPropagation();
                                   handleMouseDown(e, element.id, 'move');
                                 }}

@@ -31,7 +31,7 @@ export const ResizablePanel: React.FC<ResizablePanelProps> = ({
   }, [width]);
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!isResizing) return;
+    if (!isResizing) {return;}
 
     const deltaX = position === 'left' 
       ? e.clientX - startXRef.current 

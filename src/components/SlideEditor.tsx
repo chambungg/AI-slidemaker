@@ -28,7 +28,7 @@ export const SlideEditor: React.FC<SlideEditorProps> = ({
   const t = TRANSLATIONS[language];
 
   const handleUpdate = async () => {
-    if (!editPrompt.trim()) return;
+    if (!editPrompt.trim()) {return;}
     if (!apiKey) {
       alert(t.apiKeyRequired);
       return;

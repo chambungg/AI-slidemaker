@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { SlideGeneratorState, Slide, Theme, AspectRatio, ApiSettings } from './types';
 import { ASPECT_RATIOS, DEFAULT_THEMES, TRANSLATIONS } from './constants';
+import { AI_CONTENT_PROMPTS } from './constants/prompts';
 import { generateSlides, generateSlideHTML } from './utils/slideGenerator';
 import { exportToPDF, exportToHTML } from './utils/exportUtils';
 import { getDecryptedApiKey, saveEncryptedApiKey } from './utils/encryption';
@@ -185,95 +186,9 @@ function App() {
 
     setState(prev => ({ ...prev, isGenerating: true }));
 
-    const contentPrompts = {
-      ko: [
-        // 기술 분야
-        "최신 AI 기술 동향과 미래 전망에 대한 발표 자료를 만들어주세요",
-        "블록체인 기술의 원리와 실생활 적용 사례를 소개해주세요",
-        "사물인터넷(IoT)의 발전과 스마트 시티 구축 방안을 설명해주세요",
-        "클라우드 컴퓨팅의 장점과 기업 도입 전략을 다뤄주세요",
-        "빅데이터 분석의 중요성과 활용 방법을 제시해주세요",
-        
-        // 비즈니스 분야
-        "창업을 위한 비즈니스 모델 구성과 투자 유치 방법을 소개해주세요",
-        "디지털 마케팅 전략과 소셜미디어 활용법에 대한 프레젠테이션을 준비해주세요",
-        "고객 경험(CX) 향상을 위한 서비스 디자인 방법론을 설명해주세요",
-        "원격 근무 시대의 팀 관리와 생산성 향상 방안을 다뤄주세요",
-        "ESG 경영의 중요성과 기업의 지속가능성 전략을 소개해주세요",
-        
-        // 교육 분야
-        "온라인 교육의 효과적인 설계와 운영 방안에 대해 논의해주세요",
-        "메타버스를 활용한 몰입형 학습 환경 구축 방법을 설명해주세요",
-        "개인 맞춤형 학습 시스템과 적응형 교육 기술을 다뤄주세요",
-        "디지털 리터러시 교육의 필요성과 실천 방안을 제시해주세요",
-        
-        // 환경/사회 분야
-        "지속가능한 환경을 위한 친환경 기술과 실천 방안에 대해 설명해주세요",
-        "재생에너지의 종류와 효율적인 활용 방법을 소개해주세요",
-        "순환경제 시스템 구축과 폐기물 관리 혁신을 다뤄주세요",
-        "도시농업과 스마트팜 기술의 발전 방향을 설명해주세요",
-        
-        // 건강/라이프스타일 분야
-        "건강한 라이프스타일을 위한 운동과 영양 관리법을 제시해주세요",
-        "정신건강 관리와 스트레스 해소 방법을 소개해주세요",
-        "디지털 헬스케어 기술과 개인 건강 관리 도구를 다뤄주세요",
-        "일과 삶의 균형을 위한 시간 관리 기법을 설명해주세요",
-        
-        // 글로벌/문화 분야
-        "글로벌 시장 진출을 위한 국제화 전략과 문화적 고려사항을 다뤄주세요",
-        "다문화 사회의 이해와 상호 존중 문화 조성 방안을 제시해주세요",
-        "K-컬처의 세계적 확산과 문화 콘텐츠 산업 전망을 소개해주세요",
-        
-        // 미래/트렌드 분야
-        "미래 직업 트렌드와 필요한 역량 개발 방향에 대해 분석해주세요",
-        "인구 고령화 사회의 도전과 기회를 다뤄주세요"
-      ],
-      en: [
-        // Technology
-        "Create a presentation about the latest AI technology trends and future prospects",
-        "Introduce blockchain technology principles and real-life application cases",
-        "Explain IoT development and smart city construction strategies",
-        "Cover cloud computing advantages and enterprise adoption strategies",
-        "Present the importance and utilization methods of big data analysis",
-        
-        // Business
-        "Introduce business model composition and investment attraction methods for startups",
-        "Prepare a presentation on digital marketing strategies and social media utilization",
-        "Explain service design methodologies for improving customer experience (CX)",
-        "Cover team management and productivity improvement in the remote work era",
-        "Introduce ESG management importance and corporate sustainability strategies",
-        
-        // Education
-        "Discuss effective design and operation of online education",
-        "Explain methods for building immersive learning environments using metaverse",
-        "Cover personalized learning systems and adaptive education technologies",
-        "Present the necessity and practical plans for digital literacy education",
-        
-        // Environment/Society
-        "Explain eco-friendly technologies and practices for sustainable environment",
-        "Introduce types of renewable energy and efficient utilization methods",
-        "Cover circular economy system construction and waste management innovation",
-        "Explain the development direction of urban agriculture and smart farm technology",
-        
-        // Health/Lifestyle
-        "Present exercise and nutrition management for a healthy lifestyle",
-        "Introduce mental health management and stress relief methods",
-        "Cover digital healthcare technology and personal health management tools",
-        "Explain time management techniques for work-life balance",
-        
-        // Global/Culture
-        "Cover internationalization strategies and cultural considerations for global market entry",
-        "Present understanding of multicultural society and mutual respect culture creation",
-        "Introduce K-culture's global expansion and cultural content industry prospects",
-        
-        // Future/Trends
-        "Analyze future job trends and necessary competency development directions",
-        "Cover challenges and opportunities in an aging society"
-      ]
-    };
 
     try {
-      const prompts = contentPrompts[state.language];
+      const prompts = AI_CONTENT_PROMPTS[state.language];
       const randomPrompt = prompts[Math.floor(Math.random() * prompts.length)];
       
       setState(prev => ({ 
@@ -288,7 +203,7 @@ function App() {
   };
 
   const handleGenerate = async () => {
-    if (!state.content.trim()) return;
+    if (!state.content.trim()) {return;}
     if (!state.geminiApiKey) {
       alert(t.apiKeyRequired);
       return;
@@ -338,7 +253,7 @@ function App() {
   };
 
   const handleSlideMove = (fromIndex: number, toIndex: number) => {
-    if (toIndex < 0 || toIndex >= state.slides.length) return;
+    if (toIndex < 0 || toIndex >= state.slides.length) {return;}
     
     setState(prev => {
       const newSlides = [...prev.slides];

@@ -1,3 +1,5 @@
+import { createSlideGenerationPrompt, createSlideUpdatePrompt, type SlideGenerationConfig } from '../constants/prompts';
+
 export interface GeminiResponse {
   candidates: Array<{
     content: {
@@ -6,44 +8,175 @@ export interface GeminiResponse {
       }>;
     };
   }>;
+  error?: {
+    code: number;
+    message: string;
+    status: string;
+  };
 }
+
+export interface ApiError {
+  message: string;
+  type: 'network' | 'auth' | 'quota' | 'validation' | 'server' | 'unknown';
+  status?: number;
+  userMessage: string;
+}
+
+const createApiError = (error: unknown, status?: number): ApiError => {
+  if (error instanceof TypeError && error.message.includes('fetch')) {
+    return {
+      message: 'Network connection failed',
+      type: 'network',
+      userMessage: '네트워크 연결에 실패했습니다. 인터넷 연결을 확인해주세요.'
+    };
+  }
+
+  if (status === 401) {
+    return {
+      message: 'Invalid API key',
+      type: 'auth',
+      status,
+      userMessage: 'API 키가 유효하지 않습니다. 설정에서 올바른 Gemini API 키를 입력해주세요.'
+    };
+  }
+
+  if (status === 403) {
+    return {
+      message: 'API access forbidden',
+      type: 'auth',
+      status,
+      userMessage: 'API 접근이 거부되었습니다. API 키 권한을 확인해주세요.'
+    };
+  }
+
+  if (status === 429) {
+    return {
+      message: 'Rate limit exceeded',
+      type: 'quota',
+      status,
+      userMessage: 'API 요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요.'
+    };
+  }
+
+  if (status === 400) {
+    return {
+      message: 'Invalid request',
+      type: 'validation',
+      status,
+      userMessage: '요청이 잘못되었습니다. 입력 내용을 확인해주세요.'
+    };
+  }
+
+  if (status && status >= 500) {
+    return {
+      message: 'Server error',
+      type: 'server',
+      status,
+      userMessage: 'AI 서버에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요.'
+    };
+  }
+
+  return {
+    message: error instanceof Error ? error.message : 'Unknown error',
+    type: 'unknown',
+    status,
+    userMessage: '알 수 없는 오류가 발생했습니다. 다시 시도해주세요.'
+  };
+};
 
 export const callGeminiAPI = async (prompt: string, apiKey: string): Promise<string> => {
   if (!apiKey) {
-    throw new Error('Gemini API key is required');
+    const error: ApiError = {
+      message: 'Gemini API key is required',
+      type: 'validation',
+      userMessage: 'Gemini API 키가 필요합니다. 설정에서 API 키를 입력해주세요.'
+    };
+    throw error;
   }
 
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      contents: [{
-        parts: [{
-          text: prompt
-        }]
-      }],
-      generationConfig: {
-        temperature: 0.7,
-        topK: 40,
-        topP: 0.95,
-        maxOutputTokens: 4096,
-      }
-    })
-  });
+  if (!prompt.trim()) {
+    const error: ApiError = {
+      message: 'Prompt is required',
+      type: 'validation',
+      userMessage: '내용을 입력해주세요.'
+    };
+    throw error;
+  }
+
+  let response: Response;
+  
+  try {
+    response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: prompt
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 4096,
+        }
+      }),
+      signal: AbortSignal.timeout(30000) // 30초 타임아웃
+    });
+  } catch (error) {
+    throw createApiError(error);
+  }
 
   if (!response.ok) {
-    throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
+    let errorData: unknown;
+    try {
+      errorData = await response.json();
+    } catch {
+      // JSON 파싱 실패 시 기본 에러 처리
+    }
+    
+    throw createApiError(errorData || new Error(`HTTP ${response.status}`), response.status);
   }
 
-  const data: GeminiResponse = await response.json();
+  let data: GeminiResponse;
+  try {
+    data = await response.json();
+  } catch (error) {
+    const apiError: ApiError = {
+      message: 'Failed to parse response',
+      type: 'server',
+      userMessage: 'AI 응답을 처리하는 중 오류가 발생했습니다.'
+    };
+    throw apiError;
+  }
+
+  if (data.error) {
+    throw createApiError(data.error, data.error.code);
+  }
   
   if (!data.candidates || data.candidates.length === 0) {
-    throw new Error('No response from Gemini API');
+    const error: ApiError = {
+      message: 'No response from Gemini API',
+      type: 'server',
+      userMessage: 'AI에서 응답을 받지 못했습니다. 다시 시도해주세요.'
+    };
+    throw error;
   }
 
-  return data.candidates[0].content.parts[0].text;
+  const candidate = data.candidates[0];
+  if (!candidate.content || !candidate.content.parts || candidate.content.parts.length === 0) {
+    const error: ApiError = {
+      message: 'Invalid response format',
+      type: 'server',
+      userMessage: 'AI 응답 형식이 올바르지 않습니다.'
+    };
+    throw error;
+  }
+
+  return candidate.content.parts[0].text;
 };
 
 //이하 제미나이 프롬프트 설정
@@ -52,60 +185,15 @@ export const generateSlidesWithGemini = async (
   apiKey: string,
   language: 'ko' | 'en',
   slideType: 'card-news' | 'ppt' | 'image-card' = 'ppt',
-  slideCount: number = 5
+  slideCount = 5
 ): Promise<Array<{ title: string; content: string; subtitle?: string; bulletPoints?: string[] }>> => {
-  const languageInstruction = language === 'ko' 
-    ? '한국어로 응답해주세요.' 
-    : 'Please respond in English.';
-
-  const getSlideTypeInstruction = () => {
-    switch (slideType) {
-      case 'card-news':
-        return language === 'ko' 
-          ? '카드뉴스 형태로 만들어주세요. 각 슬라이드는 매우 짧고 요약된 문구 위주로, 같은 글씨 크기로 작성해주세요. 한 슬라이드당 최대 20단어 이내로 제한하세요.'
-          : 'Create in card news format. Each slide should have very short and summarized phrases with consistent font size. Limit to maximum 20 words per slide.';
-      case 'image-card':
-        return language === 'ko'
-          ? '이미지카드 형태로 만들어주세요. 각 슬라이드에는 관련 이미지가 배치되고, 그 이미지에 알맞는 간결한 메시지를 표시하세요. 한 슬라이드당 최대 30단어 이내로 제한하세요.'
-          : 'Create in image card format. Each slide should have a relevant image with a concise message that fits the image. Limit to maximum 30 words per slide.';
-      case 'ppt':
-      default:
-        return language === 'ko'
-          ? '일반적인 PPT 프레젠테이션 형태로 만들어주세요. 각 슬라이드는 매우 상세하고 풍부한 내용으로 구성하세요. 제목은 최대 15자 이하로 간결하게, 내용은 5-10개의 풍부한 불릿 포인트로 구성하고 각 불릿 포인트는 3-4줄의 자세한 설명을 포함해야 합니다. 예시, 데이터, 구체적인 설명, 실용적인 정보를 포함하여 전문적이고 정보가 매우 풍부한 내용으로 작성해주세요. 내용의 분량은 제목보다 훨씬 많아야 합니다.'
-          : 'Create in standard PPT presentation format with very detailed and rich content. Keep titles under 15 characters and make content with 5-10 rich bullet points. Each bullet point should contain 3-4 lines of detailed explanation with examples, data, specific descriptions, and practical information for very professional and informative content. Content should be much more extensive than titles.';
-    }
+  const config: SlideGenerationConfig = {
+    language,
+    slideType,
+    slideCount
   };
 
-  const prompt = `
-${languageInstruction}
-${getSlideTypeInstruction()}
-
-다음 내용을 바탕으로 정확히 ${slideCount}개의 프레젠테이션 슬라이드를 만들어주세요. 
-반드시 ${slideCount}개의 슬라이드로 나누어서 작성해주세요.
-각 슬라이드는 명확한 제목과 핵심 내용을 가져야 합니다.
-제목은 최대 15자 이하의 간결한 핵심 문구로 작성해주세요.
-
-내용: ${content}
-
-응답은 반드시 다음 형식으로만 작성해주세요. 다른 설명이나 텍스트는 포함하지 마세요:
-
-===SLIDE_START===
-TITLE: [슬라이드 제목]
-CONTENT: [슬라이드 내용]
-===SLIDE_END===
-
-===SLIDE_START===
-TITLE: [슬라이드 제목]
-CONTENT: [슬라이드 내용]
-===SLIDE_END===
-
-지침:
-1. 반드시 정확히 ${slideCount}개의 슬라이드를 생성하세요
-2. 각 슬라이드는 하나의 주요 아이디어에 집중하세요
-3. 제목은 최대 15자 이하로 간결하고 임팩트 있게 작성하세요
-4. 내용은 풍부하고 상세하게 작성하세요
-5. 반드시 위의 형식을 정확히 따라주세요
-`;
+  const prompt = createSlideGenerationPrompt(content, config);
 
   try {
     const response = await callGeminiAPI(prompt, apiKey);
@@ -193,26 +281,18 @@ CONTENT: [슬라이드 내용]
   } catch (error) {
     console.error('Error calling Gemini API:', error);
     
-    // Fallback: create slides from content directly
-    const paragraphs = content.split('\n\n').filter(p => p.trim());
-    
-    if (paragraphs.length > 1) {
-      return paragraphs.map((paragraph, index) => {
-        const lines = paragraph.split('\n').filter(l => l.trim());
-        const title = lines[0] || `슬라이드 ${index + 1}`;
-        const slideContent = lines.slice(1).join(' ') || paragraph;
-        
-        return {
-          title: title.length > 50 ? title.substring(0, 50) + '...' : title,
-          content: slideContent
-        };
-      });
-    } else {
-      return [{
-        title: language === 'ko' ? '프레젠테이션' : 'Presentation',
-        content: content
-      }];
+    // ApiError인 경우 사용자에게 친화적인 메시지와 함께 재throw
+    if (error && typeof error === 'object' && 'userMessage' in error) {
+      throw error;
     }
+    
+    // 예상치 못한 에러인 경우 일반적인 ApiError로 변환
+    const apiError: ApiError = {
+      message: error instanceof Error ? error.message : 'Unknown error during slide generation',
+      type: 'unknown',
+      userMessage: '슬라이드 생성 중 오류가 발생했습니다. 다시 시도해주세요.'
+    };
+    throw apiError;
   }
 };
 
@@ -223,25 +303,7 @@ export const updateSlideWithGemini = async (
   apiKey: string,
   language: 'ko' | 'en'
 ): Promise<{ title: string; content: string; subtitle?: string; bulletPoints?: string[] }> => {
-  const languageInstruction = language === 'ko' 
-    ? '한국어로 응답해주세요.' 
-    : 'Please respond in English.';
-
-  const prompt = `
-${languageInstruction}
-
-현재 슬라이드:
-제목: ${currentTitle}
-내용: ${currentContent}
-
-수정 요청: ${updateRequest}
-
-위 수정 요청에 따라 슬라이드를 업데이트해주세요.
-
-응답 형식 (다른 텍스트는 포함하지 마세요):
-TITLE: [새로운 제목]
-CONTENT: [새로운 내용]
-`;
+  const prompt = createSlideUpdatePrompt(currentTitle, currentContent, updateRequest, language);
 
   try {
     const response = await callGeminiAPI(prompt, apiKey);
@@ -264,7 +326,18 @@ CONTENT: [새로운 내용]
     
   } catch (error) {
     console.error('Error updating slide with Gemini:', error);
-    // Return original content if API fails
-    return { title: currentTitle, content: currentContent };
+    
+    // ApiError인 경우 재throw하여 사용자에게 적절한 피드백 제공
+    if (error && typeof error === 'object' && 'userMessage' in error) {
+      throw error;
+    }
+    
+    // 예상치 못한 에러인 경우 일반적인 ApiError로 변환
+    const apiError: ApiError = {
+      message: error instanceof Error ? error.message : 'Unknown error during slide update',
+      type: 'unknown',
+      userMessage: '슬라이드 수정 중 오류가 발생했습니다. 다시 시도해주세요.'
+    };
+    throw apiError;
   }
 };

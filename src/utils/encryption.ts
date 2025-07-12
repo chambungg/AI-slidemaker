@@ -93,7 +93,7 @@ export const saveEncryptedApiKey = (apiKey: string): void => {
 // API 키 조회 (이중 복호화 사용)
 export const getDecryptedApiKey = (): string => {
   const encrypted = localStorage.getItem('geminiApiKey');
-  if (!encrypted) return '';
+  if (!encrypted) {return '';}
   
   return decryptDataEnhanced(encrypted);
 };
@@ -112,7 +112,7 @@ export const isApiKeyStored = (): boolean => {
 // API 키 저장 시간 조회
 export const getApiKeySavedTime = (): Date | null => {
   const savedAt = localStorage.getItem('geminiApiKey_savedAt');
-  if (!savedAt) return null;
+  if (!savedAt) {return null;}
   
   return new Date(parseInt(savedAt));
 };

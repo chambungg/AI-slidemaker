@@ -99,7 +99,7 @@ const IMAGE_CATEGORIES = {
   ],
 };
 
-export const searchImages = async (query: string, page: number = 1): Promise<PexelsImage[]> => {
+export const searchImages = async (query: string, page = 1): Promise<PexelsImage[]> => {
   // Determine category based on query
   const lowerQuery = query.toLowerCase();
   let categoryImages: string[] = [];
@@ -146,7 +146,7 @@ export const searchImages = async (query: string, page: number = 1): Promise<Pex
   return images.slice(0, 8);
 };
 
-export const getRandomImages = (count: number = 6): PexelsImage[] => {
+export const getRandomImages = (count = 6): PexelsImage[] => {
   const shuffled = [...CURATED_BACKGROUND_IMAGES].sort(() => 0.5 - Math.random());
   return shuffled.slice(0, count).map((url, index) => ({
     id: index + 1,
@@ -167,8 +167,8 @@ export const getRandomImages = (count: number = 6): PexelsImage[] => {
 
 // Lorem Picsum API를 사용한 배경 이미지 생성 (ID 방식)
 export const generatePicsumImage = (
-  width: number = 1200,
-  height: number = 800,
+  width = 1200,
+  height = 800,
   seed?: string,
   blur?: number,
   grayscale?: boolean
@@ -179,8 +179,8 @@ export const generatePicsumImage = (
   let url = `https://picsum.photos/id/${imageId}/${width}/${height}`;
   
   const params = new URLSearchParams();
-  if (blur && blur > 0) params.append('blur', blur.toString());
-  if (grayscale) params.append('grayscale', '');
+  if (blur && blur > 0) {params.append('blur', blur.toString());}
+  if (grayscale) {params.append('grayscale', '');}
   
   if (params.toString()) {
     url += `?${params.toString()}`;
