@@ -304,7 +304,7 @@ function App() {
         state.language,
         slideType,
         slideCount,
-        templateStyle
+        'mixed-auto' // 혼합 템플릿 사용
       );
       setState(prev => ({
         ...prev,
@@ -420,7 +420,7 @@ function App() {
           </div>
           
           <div className="flex items-center gap-2">
-            {/* 언어 선택 */}
+            {/* 언어 선택: 한국어, 영어 */}
             <select
               value={state.language}
               onChange={(e) => handleLanguageChange(e.target.value as 'ko' | 'en')}
@@ -438,17 +438,20 @@ function App() {
             <div className="relative">
               <button
                 onClick={() => setShowSettings(!showSettings)}
-                className={`p-2 rounded-lg transition-colors ${
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
                   isDarkMode 
                     ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
-                title="API 설정"
+                title={state.language === 'ko' ? '제미나이 API 입력 및 저장' : 'Gemini API Settings'}
               >
-                <Settings className="w-5 h-5" />
+                <Settings className="w-4 h-4" />
+                <span className="text-sm font-medium">
+                  {state.language === 'ko' ? '제미나이 API' : 'Gemini API'}
+                </span>
               </button>
 
-              {/* 설정 팝업 */}
+              {/* 설정 팝업: API 키 입력 및 저장 */}
               {showSettings && (
                 <div className={`absolute right-0 top-full mt-2 w-80 p-4 rounded-lg border shadow-lg z-50 ${
                   isDarkMode 
@@ -515,15 +518,15 @@ function App() {
       <div className="flex h-[calc(100vh-80px)]">
         {/* Left Panel - Input & Settings */}
         <ResizablePanel 
-          defaultWidth={350} 
-          minWidth={300} 
-          maxWidth={500} 
+          defaultWidth={280} 
+          minWidth={250} 
+          maxWidth={350} 
           position="left"
-          className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-r p-6 overflow-y-auto transition-colors`}
+          className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-r p-4 overflow-y-auto transition-colors`}
         >
-          <div className="space-y-6">
+          <div className="space-y-4">
             <div>
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center justify-between mb-2">
                 <label className="block text-sm font-medium text-gray-700">
                   {t.content}
                 </label>
@@ -531,21 +534,21 @@ function App() {
                   onClick={generateAIContentPrompt}
                   disabled={!state.geminiApiKey || state.isGenerating}
                   className="flex items-center gap-1 px-2 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  title="AI가 프롬프트 예시를 생성합니다"
+                  title="프롬프트 예시를 생성합니다"
                 >
                   {state.isGenerating ? (
                     <Loader className="w-3 h-3 animate-spin" />
                   ) : (
                     <Lightbulb className="w-3 h-3" />
                   )}
-                  AI 예시
+                  프롬프트 예시
                 </button>
               </div>
               <textarea
                 value={state.content}
                 onChange={(e) => setState(prev => ({ ...prev, content: e.target.value }))}
                 placeholder={t.contentPlaceholder}
-                className="w-full h-40 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                className="w-full h-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
               />
             </div>
 
