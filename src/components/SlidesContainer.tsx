@@ -1118,42 +1118,55 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                 onSlideUpdate(updatedSlide);
                               }
 
-                              // 잠시 후 편집 모드 종료
-                              setTimeout(() => {
-                                onSlideSelect('');
-                              }, 100);
+                              // 편집 모드는 유지하고 변경사항만 저장
+                              setHasUnsavedChanges(false);
+                            }}
+                            className="px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                          >
+                            변경사항 저장
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (hasUnsavedChanges) {
+                                if (!window.confirm('저장하지 않은 변경사항이 있습니다. 편집을 종료하시겠습니까?')) {
+                                  return;
+                                }
+                              }
+                              onSlideSelect('');
                             }}
                             className="px-3 py-2 text-sm bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
                           >
-                            편집 완료
+                            편집 종료
                           </button>
                         </div>
                       </div>
 
-                      {/* 슬라이드 편집 영역 - 반응형 레이아웃 */}
+                      {/* 2-column layout */}
                       <div className="flex flex-col lg:flex-row h-full gap-4">
-                        {/* 슬라이드 편집 영역 - 모바일: 전체, 데스크톱: 70% */}
-                        <div className="flex-1 lg:flex-[7] min-h-0">
-                          <div
-                            ref={containerRef}
-                            data-slide-id={slide.id}
-                            className="relative overflow-hidden bg-white cursor-crosshair"
-                            style={{
-                              ...getSlideContainerStyle(),
-                              border: `${slideBorderStyle?.borderWidth || 1}px ${slideBorderStyle?.borderStyle || 'solid'} #3B82F6`,
-                              borderRadius: `${slideBorderStyle?.borderRadius || 8}px`,
-                              boxShadow: slideBorderStyle?.boxShadow || '0 2px 4px rgba(0,0,0,0.1)',
-                            }}
-                            onClick={(e) => {
-                              // 빈 공간 클릭 시 선택 해제
-                              if (e.target === e.currentTarget) {
-                                setSelectedElementId(undefined);
-                                setEditingElement(null);
-                              }
-                            }}
-                            onDrop={handleDrop}
-                            onDragOver={handleDragOver}
-                          >
+                        {/* Left column: Slide editor (top) + Property panel (bottom) */}
+                        <div className="flex-1 lg:flex-[7] min-h-0 flex flex-col gap-4">
+                          {/* Slide editor */}
+                          <div className="flex-1 min-h-0">
+                            <div
+                              ref={containerRef}
+                              data-slide-id={slide.id}
+                              className="relative overflow-hidden bg-white cursor-crosshair"
+                              style={{
+                                ...getSlideContainerStyle(),
+                                border: `${slideBorderStyle?.borderWidth || 1}px ${slideBorderStyle?.borderStyle || 'solid'} #3B82F6`,
+                                borderRadius: `${slideBorderStyle?.borderRadius || 8}px`,
+                                boxShadow: slideBorderStyle?.boxShadow || '0 2px 4px rgba(0,0,0,0.1)',
+                              }}
+                              onClick={(e) => {
+                                // 빈 공간 클릭 시 선택 해제
+                                if (e.target === e.currentTarget) {
+                                  setSelectedElementId(undefined);
+                                  setEditingElement(null);
+                                }
+                              }}
+                              onDrop={handleDrop}
+                              onDragOver={handleDragOver}
+                            >
                             {/* 기본 슬라이드 배경 - 실시간 업데이트 */}
                             <div
                               className="absolute inset-0 z-0"
@@ -1771,10 +1784,296 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
 
                               </div>
                             ))}
+                            </div>
                           </div>
+
+                          {/* Property panel for selected elements */}
+                          {selectedElement && (
+                            <div className={`${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-300'} rounded-lg border p-3 lg:p-4 space-y-3 lg:space-y-4 overflow-y-auto`}>
+                              <div className="flex items-center justify-between">
+                                <h4 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
+                                  {selectedElement.type === 'text' ? '📝 텍스트 속성' : '🖼️ 이미지 속성'}
+                                </h4>
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={() => deleteElement(selectedElement.id)}
+                                    className={`text-sm px-2 py-1 rounded ${isDarkMode ? 'text-red-400 hover:text-red-300 hover:bg-red-900/20' : 'text-red-600 hover:text-red-700 hover:bg-red-50'} transition-colors`}
+                                    title="요소 삭제"
+                                  >
+                                    🗑️
+                                  </button>
+                                  <button
+                                    onClick={() => setSelectedElementId(undefined)}
+                                    className={`text-sm ${isDarkMode ? 'text-gray-400 hover:text-gray-200' : 'text-gray-500 hover:text-gray-700'}`}
+                                    title="속성 패널 닫기"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* 우선순위 조절 */}
+                              <div className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg p-3`}>
+                                <label className={`block text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-700'} mb-2`}>우선순위 (z-index)</label>
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={() => updateElement(selectedElement.id, { zIndex: Math.max(1, (selectedElement.zIndex || 1) - 1) })}
+                                    className={`px-2 py-1 text-xs rounded ${isDarkMode ? 'bg-gray-600 hover:bg-gray-500 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}
+                                    title="뒤로 보내기"
+                                  >
+                                    ↓
+                                  </button>
+                                  <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} min-w-8 text-center`}>
+                                    {selectedElement.zIndex || 1}
+                                  </span>
+                                  <button
+                                    onClick={() => updateElement(selectedElement.id, { zIndex: (selectedElement.zIndex || 1) + 1 })}
+                                    className={`px-2 py-1 text-xs rounded ${isDarkMode ? 'bg-gray-600 hover:bg-gray-500 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}
+                                    title="앞으로 보내기"
+                                  >
+                                    ↑
+                                  </button>
+                                </div>
+                              </div>
+
+                              {selectedElement.type === 'text' ? (
+                                <div className="space-y-3">
+                                  {/* 텍스트 편집 */}
+                                  <div>
+                                    <label className={`block text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-700'} mb-1`}>텍스트</label>
+                                    <textarea
+                                      value={selectedElement.content}
+                                      onChange={(e) => updateElement(selectedElement.id, { content: e.target.value })}
+                                      className={`w-full p-2 border rounded-lg resize-none ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'} focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                                      rows={3}
+                                      placeholder="텍스트를 입력하세요"
+                                    />
+                                  </div>
+
+                                  {/* 글꼴 및 스타일 */}
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    <div>
+                                      <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>글꼴</label>
+                                      <select
+                                        value={selectedElement.fontFamily || 'Noto Sans KR'}
+                                        onChange={(e) => updateElement(selectedElement.id, { fontFamily: e.target.value })}
+                                        className={`w-full px-2 py-1 border rounded text-xs ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
+                                      >
+                                        <option value="Noto Sans KR">Noto Sans KR</option>
+                                        <option value="Pretendard">Pretendard</option>
+                                        <option value="Nanum Gothic">나눔고딕</option>
+                                        <option value="Nanum Myeongjo">나눔명조</option>
+                                        <option value="Gowun Dodum">고운돋움</option>
+                                        <option value="Gowun Batang">고운바탕</option>
+                                        <option value="Arial">Arial</option>
+                                        <option value="Times New Roman">Times New Roman</option>
+                                        <option value="Georgia">Georgia</option>
+                                        <option value="Courier New">Courier New</option>
+                                      </select>
+                                    </div>
+                                    <div>
+                                      <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>크기</label>
+                                      <input
+                                        type="number"
+                                        min="8"
+                                        max="200"
+                                        value={parseInt(selectedElement.fontSize || '16')}
+                                        onChange={(e) => updateElement(selectedElement.id, { fontSize: `${e.target.value}px` })}
+                                        className={`w-full px-2 py-1 border rounded text-xs ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
+                                      />
+                                    </div>
+                                  </div>
+
+                                  {/* 색상 및 정렬 */}
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                      <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>색상</label>
+                                      <div className="flex items-center gap-1">
+                                        <input
+                                          type="color"
+                                          value={selectedElement.color || '#000000'}
+                                          onChange={(e) => updateElement(selectedElement.id, { color: e.target.value })}
+                                          className="w-8 h-8 rounded cursor-pointer"
+                                        />
+                                        <input
+                                          type="text"
+                                          value={selectedElement.color || '#000000'}
+                                          onChange={(e) => updateElement(selectedElement.id, { color: e.target.value })}
+                                          className={`flex-1 px-2 py-1 border rounded text-xs ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
+                                          placeholder="#000000"
+                                        />
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>정렬</label>
+                                      <select
+                                        value={selectedElement.textAlign || 'left'}
+                                        onChange={(e) => updateElement(selectedElement.id, { textAlign: e.target.value as 'left' | 'center' | 'right' })}
+                                        className={`w-full px-2 py-1 border rounded text-xs ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
+                                      >
+                                        <option value="left">왼쪽</option>
+                                        <option value="center">가운데</option>
+                                        <option value="right">오른쪽</option>
+                                      </select>
+                                    </div>
+                                  </div>
+
+                                  {/* 굵기 및 위치 */}
+                                  <div className="space-y-2">
+                                    <div>
+                                      <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>굵기</label>
+                                      <select
+                                        value={selectedElement.fontWeight || 'normal'}
+                                        onChange={(e) => updateElement(selectedElement.id, { fontWeight: e.target.value })}
+                                        className={`w-full px-2 py-1 border rounded text-xs ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
+                                      >
+                                        <option value="normal">보통</option>
+                                        <option value="bold">굵게</option>
+                                        <option value="lighter">가늘게</option>
+                                      </select>
+                                    </div>
+
+                                    {/* 위치 및 크기 */}
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-1">
+                                      <div>
+                                        <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>X</label>
+                                        <input
+                                          type="number"
+                                          value={Math.round(selectedElement.x)}
+                                          onChange={(e) => updateElement(selectedElement.id, { x: parseInt(e.target.value) || 0 })}
+                                          className={`w-full px-1 py-1 border rounded text-xs ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>Y</label>
+                                        <input
+                                          type="number"
+                                          value={Math.round(selectedElement.y)}
+                                          onChange={(e) => updateElement(selectedElement.id, { y: parseInt(e.target.value) || 0 })}
+                                          className={`w-full px-1 py-1 border rounded text-xs ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>너비</label>
+                                        <input
+                                          type="number"
+                                          value={Math.round(selectedElement.width)}
+                                          onChange={(e) => updateElement(selectedElement.id, { width: parseInt(e.target.value) || 50 })}
+                                          className={`w-full px-1 py-1 border rounded text-xs ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>높이</label>
+                                        <input
+                                          type="number"
+                                          value={Math.round(selectedElement.height)}
+                                          onChange={(e) => updateElement(selectedElement.id, { height: parseInt(e.target.value) || 30 })}
+                                          className={`w-full px-1 py-1 border rounded text-xs ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* 회전 */}
+                                  <div>
+                                    <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>회전 ({Math.round(selectedElement.rotation || 0)}°)</label>
+                                    <div className="flex items-center gap-2">
+                                      <input
+                                        type="range"
+                                        min="-180"
+                                        max="180"
+                                        value={selectedElement.rotation || 0}
+                                        onChange={(e) => updateElement(selectedElement.id, { rotation: parseInt(e.target.value) })}
+                                        className="flex-1"
+                                      />
+                                      <button
+                                        onClick={() => updateElement(selectedElement.id, { rotation: 0 })}
+                                        className={`px-2 py-1 text-xs rounded ${isDarkMode ? 'bg-gray-600 hover:bg-gray-500 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}
+                                        title="회전 초기화"
+                                      >
+                                        초기화
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="space-y-2">
+                                  <button
+                                    onClick={() => handleImageUpload(selectedElement.id)}
+                                    className="w-full flex items-center justify-center gap-1 px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                                  >
+                                    <Upload className="w-3 h-3" />
+                                    이미지 변경
+                                  </button>
+
+                                  {/* 위치 및 크기 */}
+                                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1">
+                                    <div>
+                                      <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>X</label>
+                                      <input
+                                        type="number"
+                                        value={Math.round(selectedElement.x)}
+                                        onChange={(e) => updateElement(selectedElement.id, { x: parseInt(e.target.value) || 0 })}
+                                        className={`w-full px-1 py-1 border rounded text-xs ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>Y</label>
+                                      <input
+                                        type="number"
+                                        value={Math.round(selectedElement.y)}
+                                        onChange={(e) => updateElement(selectedElement.id, { y: parseInt(e.target.value) || 0 })}
+                                        className={`w-full px-1 py-1 border rounded text-xs ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>너비</label>
+                                      <input
+                                        type="number"
+                                        value={Math.round(selectedElement.width)}
+                                        onChange={(e) => updateElement(selectedElement.id, { width: parseInt(e.target.value) || 50 })}
+                                        className={`w-full px-1 py-1 border rounded text-xs ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>높이</label>
+                                      <input
+                                        type="number"
+                                        value={Math.round(selectedElement.height)}
+                                        onChange={(e) => updateElement(selectedElement.id, { height: parseInt(e.target.value) || 30 })}
+                                        className={`w-full px-1 py-1 border rounded text-xs ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
+                                      />
+                                    </div>
+                                  </div>
+
+                                  {/* 회전 */}
+                                  <div>
+                                    <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>회전 ({Math.round(selectedElement.rotation || 0)}°)</label>
+                                    <div className="flex items-center gap-2">
+                                      <input
+                                        type="range"
+                                        min="-180"
+                                        max="180"
+                                        value={selectedElement.rotation || 0}
+                                        onChange={(e) => updateElement(selectedElement.id, { rotation: parseInt(e.target.value) })}
+                                        className="flex-1"
+                                      />
+                                      <button
+                                        onClick={() => updateElement(selectedElement.id, { rotation: 0 })}
+                                        className={`px-2 py-1 text-xs rounded ${isDarkMode ? 'bg-gray-600 hover:bg-gray-500 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}
+                                        title="회전 초기화"
+                                      >
+                                        초기화
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
 
-                        {/* 컨트롤 패널 - 모바일: 하단, 데스크톱: 우측 30% */}
+                        {/* Right column: Side editing controls (full height) */}
                         <div className="flex-1 lg:flex-[3] space-y-4 max-w-full lg:max-w-xs overflow-y-auto">
                           {/* 슬라이드 템플릿 선택 */}
                           <SlideTemplateSelector
@@ -1896,281 +2195,6 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                           </div>
                         </div>
                       </div>
-
-                      {/* 선택된 요소의 속성 패널 - 반응형 */}
-                      {selectedElement && (
-                        <div className={`${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-300'} rounded-lg border p-3 lg:p-4 space-y-3 lg:space-y-4 max-h-96 lg:max-h-none overflow-y-auto`}>
-                          <div className="flex items-center justify-between">
-                            <h4 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-                              {selectedElement.type === 'text' ? '📝 텍스트 속성' : '🖼️ 이미지 속성'}
-                            </h4>
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => deleteElement(selectedElement.id)}
-                                className={`text-sm px-2 py-1 rounded ${isDarkMode ? 'text-red-400 hover:text-red-300 hover:bg-red-900/20' : 'text-red-600 hover:text-red-700 hover:bg-red-50'} transition-colors`}
-                                title="요소 삭제"
-                              >
-                                🗑️
-                              </button>
-                              <button
-                                onClick={() => setSelectedElementId(undefined)}
-                                className={`text-sm ${isDarkMode ? 'text-gray-400 hover:text-gray-200' : 'text-gray-500 hover:text-gray-700'}`}
-                                title="속성 패널 닫기"
-                              >
-                                ✕
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* 우선순위 조절 */}
-                          <div className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg p-3`}>
-                            <label className={`block text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-700'} mb-2`}>우선순위 (z-index)</label>
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => updateElement(selectedElement.id, { zIndex: Math.max(1, (selectedElement.zIndex || 1) - 1) })}
-                                className={`px-2 py-1 text-xs rounded ${isDarkMode ? 'bg-gray-600 hover:bg-gray-500 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}
-                                title="뒤로 보내기"
-                              >
-                                ↓
-                              </button>
-                              <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} min-w-8 text-center`}>
-                                {selectedElement.zIndex || 1}
-                              </span>
-                              <button
-                                onClick={() => updateElement(selectedElement.id, { zIndex: (selectedElement.zIndex || 1) + 1 })}
-                                className={`px-2 py-1 text-xs rounded ${isDarkMode ? 'bg-gray-600 hover:bg-gray-500 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}
-                                title="앞으로 가져오기"
-                              >
-                                ↑
-                              </button>
-                            </div>
-                          </div>
-
-                          {selectedElement.type === 'text' && (
-                            <div className="space-y-3">
-                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 lg:gap-3">
-                                {/* 글자 크기 */}
-                                <div>
-                                  <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>크기</label>
-                                  <div className="flex items-center gap-1">
-                                    <input
-                                      type="range"
-                                      min="12"
-                                      max="72"
-                                      value={selectedElement.fontSize}
-                                      onChange={(e) => updateElement(selectedElement.id, { fontSize: parseInt(e.target.value) })}
-                                      className="flex-1"
-                                    />
-                                    <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} w-8`}>{selectedElement.fontSize}</span>
-                                  </div>
-                                </div>
-
-                                {/* 글꼴 */}
-                                <div>
-                                  <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>글꼴</label>
-                                  <select
-                                    value={selectedElement.fontFamily}
-                                    onChange={(e) => updateElement(selectedElement.id, { fontFamily: e.target.value })}
-                                    className={`w-full px-1 py-1 border rounded text-xs ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
-                                  >
-                                    {FONT_FAMILIES.map((font) => (
-                                      <option key={font} value={font}>
-                                        {font.includes(',') ? font.split(',')[0] : font}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </div>
-
-                                {/* 글자 색상 */}
-                                <div>
-                                  <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>색상</label>
-                                  <input
-                                    type="color"
-                                    value={selectedElement.color}
-                                    onChange={(e) => updateElement(selectedElement.id, { color: e.target.value })}
-                                    className={`w-full h-6 border rounded ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
-                                  />
-                                </div>
-                              </div>
-
-                              {/* 텍스트 정렬 및 굵기 */}
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                <div>
-                                  <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>굵기</label>
-                                  <select
-                                    value={selectedElement.fontWeight}
-                                    onChange={(e) => updateElement(selectedElement.id, { fontWeight: e.target.value })}
-                                    className={`w-full px-1 py-1 border rounded text-xs ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
-                                  >
-                                    <option value="normal">보통</option>
-                                    <option value="bold">굵게</option>
-                                    <option value="bolder">더 굵게</option>
-                                  </select>
-                                </div>
-
-                                <div>
-                                  <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>정렬</label>
-                                  <div className="flex gap-1">
-                                    {(['left', 'center', 'right'] as const).map((align) => (
-                                      <button
-                                        key={align}
-                                        onClick={() => updateElement(selectedElement.id, { textAlign: align })}
-                                        className={`p-1 rounded text-xs ${
-                                          selectedElement.textAlign === align
-                                            ? 'bg-blue-500 text-white'
-                                            : isDarkMode
-                                            ? 'bg-gray-700 hover:bg-gray-600 text-white'
-                                            : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-                                        }`}
-                                      >
-                                        {align === 'left' && <AlignLeft className="w-3 h-3" />}
-                                        {align === 'center' && <AlignCenter className="w-3 h-3" />}
-                                        {align === 'right' && <AlignRight className="w-3 h-3" />}
-                                      </button>
-                                    ))}
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* 위치 및 크기 */}
-                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1">
-                                <div>
-                                  <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>X</label>
-                                  <input
-                                    type="number"
-                                    value={Math.round(selectedElement.x)}
-                                    onChange={(e) => updateElement(selectedElement.id, { x: parseInt(e.target.value) || 0 })}
-                                    className={`w-full px-1 py-1 border rounded text-xs ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
-                                  />
-                                </div>
-                                <div>
-                                  <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>Y</label>
-                                  <input
-                                    type="number"
-                                    value={Math.round(selectedElement.y)}
-                                    onChange={(e) => updateElement(selectedElement.id, { y: parseInt(e.target.value) || 0 })}
-                                    className={`w-full px-1 py-1 border rounded text-xs ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
-                                  />
-                                </div>
-                                <div>
-                                  <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>너비</label>
-                                  <input
-                                    type="number"
-                                    value={Math.round(selectedElement.width)}
-                                    onChange={(e) => updateElement(selectedElement.id, { width: parseInt(e.target.value) || 50 })}
-                                    className={`w-full px-1 py-1 border rounded text-xs ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
-                                  />
-                                </div>
-                                <div>
-                                  <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>높이</label>
-                                  <input
-                                    type="number"
-                                    value={Math.round(selectedElement.height)}
-                                    onChange={(e) => updateElement(selectedElement.id, { height: parseInt(e.target.value) || 30 })}
-                                    className={`w-full px-1 py-1 border rounded text-xs ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
-                                  />
-                                </div>
-                              </div>
-
-                              {/* 회전 */}
-                              <div>
-                                <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>회전 ({Math.round(selectedElement.rotation || 0)}°)</label>
-                                <div className="flex items-center gap-2">
-                                  <input
-                                    type="range"
-                                    min="-180"
-                                    max="180"
-                                    value={selectedElement.rotation || 0}
-                                    onChange={(e) => updateElement(selectedElement.id, { rotation: parseInt(e.target.value) })}
-                                    className="flex-1"
-                                  />
-                                  <button
-                                    onClick={() => updateElement(selectedElement.id, { rotation: 0 })}
-                                    className={`px-2 py-1 text-xs rounded ${isDarkMode ? 'bg-gray-600 hover:bg-gray-500 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}
-                                    title="회전 초기화"
-                                  >
-                                    초기화
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-
-                          {selectedElement.type === 'image' && (
-                            <div className="space-y-2">
-                              <button
-                                onClick={() => handleImageUpload(selectedElement.id)}
-                                className="w-full flex items-center justify-center gap-1 px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-                              >
-                                <Upload className="w-3 h-3" />
-                                이미지 변경
-                              </button>
-
-                              {/* 위치 및 크기 */}
-                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1">
-                                <div>
-                                  <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>X</label>
-                                  <input
-                                    type="number"
-                                    value={Math.round(selectedElement.x)}
-                                    onChange={(e) => updateElement(selectedElement.id, { x: parseInt(e.target.value) || 0 })}
-                                    className={`w-full px-1 py-1 border rounded text-xs ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
-                                  />
-                                </div>
-                                <div>
-                                  <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>Y</label>
-                                  <input
-                                    type="number"
-                                    value={Math.round(selectedElement.y)}
-                                    onChange={(e) => updateElement(selectedElement.id, { y: parseInt(e.target.value) || 0 })}
-                                    className={`w-full px-1 py-1 border rounded text-xs ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
-                                  />
-                                </div>
-                                <div>
-                                  <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>너비</label>
-                                  <input
-                                    type="number"
-                                    value={Math.round(selectedElement.width)}
-                                    onChange={(e) => updateElement(selectedElement.id, { width: parseInt(e.target.value) || 50 })}
-                                    className={`w-full px-1 py-1 border rounded text-xs ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
-                                  />
-                                </div>
-                                <div>
-                                  <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>높이</label>
-                                  <input
-                                    type="number"
-                                    value={Math.round(selectedElement.height)}
-                                    onChange={(e) => updateElement(selectedElement.id, { height: parseInt(e.target.value) || 30 })}
-                                    className={`w-full px-1 py-1 border rounded text-xs ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
-                                  />
-                                </div>
-                              </div>
-
-                              {/* 회전 */}
-                              <div>
-                                <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>회전 ({Math.round(selectedElement.rotation || 0)}°)</label>
-                                <div className="flex items-center gap-2">
-                                  <input
-                                    type="range"
-                                    min="-180"
-                                    max="180"
-                                    value={selectedElement.rotation || 0}
-                                    onChange={(e) => updateElement(selectedElement.id, { rotation: parseInt(e.target.value) })}
-                                    className="flex-1"
-                                  />
-                                  <button
-                                    onClick={() => updateElement(selectedElement.id, { rotation: 0 })}
-                                    className={`px-2 py-1 text-xs rounded ${isDarkMode ? 'bg-gray-600 hover:bg-gray-500 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}
-                                    title="회전 초기화"
-                                  >
-                                    초기화
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
                     </div>
                   </div>
                 )
@@ -2231,3 +2255,5 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
     </div>
   );
 };
+
+export default SlidesContainer;

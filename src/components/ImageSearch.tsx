@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { searchImages, getRandomImages, PexelsImage } from '../utils/imageSearch';
 import { TRANSLATIONS } from '../constants';
-import { Search, Loader, Image as ImageIcon } from 'lucide-react';
+import { Search, Loader, Image as ImageIcon, RefreshCw } from 'lucide-react';
 
 interface ImageSearchProps {
   language: 'ko' | 'en';
@@ -16,6 +16,9 @@ export const ImageSearch: React.FC<ImageSearchProps> = ({
   const [images, setImages] = useState<PexelsImage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [imageLoadErrors, setImageLoadErrors] = useState<Record<number, number>>({});
+  const [retryingImages, setRetryingImages] = useState<Set<number>>(new Set());
+  const retryTimeouts = useRef<Record<number, NodeJS.Timeout>>({});
   const t = TRANSLATIONS[language];
 
   const handleSearch = async () => {
@@ -48,6 +51,13 @@ export const ImageSearch: React.FC<ImageSearchProps> = ({
     setShowResults(false);
     setQuery('');
   };
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(retryTimeouts.current).forEach(timeout => clearTimeout(timeout));
+    };
+  }, []);
 
   return (
     <div className="space-y-3">
@@ -85,13 +95,56 @@ export const ImageSearch: React.FC<ImageSearchProps> = ({
               <button
                 key={image.id}
                 onClick={() => handleImageSelect(image)}
-                className="relative group overflow-hidden rounded border hover:border-blue-500 transition-colors"
+                className="relative group overflow-hidden rounded border hover:border-blue-500 transition-colors h-[100px]"
               >
-                <img
-                  src={image.src.small}
-                  alt={`Image ${image.id}`}
-                  className="w-full h-20 object-cover group-hover:scale-105 transition-transform"
-                />
+                {retryingImages.has(image.id) ? (
+                  <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                    <RefreshCw className="w-6 h-6 animate-spin text-gray-400" />
+                  </div>
+                ) : (
+                  <img
+                    src={image.src.small}
+                    alt={`Image ${image.id}`}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                    onError={() => {
+                      const errorCount = imageLoadErrors[image.id] || 0;
+                      if (errorCount < 5) {
+                        setImageLoadErrors(prev => ({ ...prev, [image.id]: errorCount + 1 }));
+                        setRetryingImages(prev => new Set(prev).add(image.id));
+                        
+                        // Clear any existing timeout
+                        if (retryTimeouts.current[image.id]) {
+                          clearTimeout(retryTimeouts.current[image.id]);
+                        }
+                        
+                        // Retry after 5 seconds
+                        retryTimeouts.current[image.id] = setTimeout(() => {
+                          setRetryingImages(prev => {
+                            const newSet = new Set(prev);
+                            newSet.delete(image.id);
+                            return newSet;
+                          });
+                          // Force re-render by updating a dummy state
+                          const img = new Image();
+                          img.src = image.src.small;
+                        }, 5000);
+                      }
+                    }}
+                    onLoad={() => {
+                      // Clear retry state on successful load
+                      setImageLoadErrors(prev => {
+                        const newErrors = { ...prev };
+                        delete newErrors[image.id];
+                        return newErrors;
+                      });
+                      setRetryingImages(prev => {
+                        const newSet = new Set(prev);
+                        newSet.delete(image.id);
+                        return newSet;
+                      });
+                    }}
+                  />
+                )}
                 <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity" />
               </button>
             ))}
