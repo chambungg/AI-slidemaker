@@ -95,7 +95,7 @@ export const ImageSearch: React.FC<ImageSearchProps> = ({
               <button
                 key={image.id}
                 onClick={() => handleImageSelect(image)}
-                className="relative group overflow-hidden rounded border hover:border-blue-500 transition-colors h-[100px]"
+                className="relative group overflow-hidden rounded border hover:border-blue-500 transition-colors h-[200px]"
               >
                 {retryingImages.has(image.id) ? (
                   <div className="w-full h-full flex items-center justify-center bg-gray-100">

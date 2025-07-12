@@ -103,15 +103,25 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
     if (activeSlideId) {
       const slide = slides.find(s => s.id === activeSlideId);
       if (slide) {
-        setTempSlide({ ...slide });
-        setHasUnsavedChanges(false);
+        // If we already have a tempSlide with the same ID and unsaved changes, preserve the user's edits
+        if (tempSlide && tempSlide.id === slide.id && hasUnsavedChanges) {
+          // Update only the HTML content and other system-generated fields, preserve user edits
+          setTempSlide(prev => prev ? {
+            ...prev,
+            htmlContent: slide.htmlContent,
+            aspectRatio: slide.aspectRatio,
+          } : slide);
+        } else {
+          setTempSlide({ ...slide });
+          setHasUnsavedChanges(false);
+        }
       }
     } else {
       setTempSlide(null);
       setSelectedElementId(undefined);
       setEditingElement(null);
     }
-  }, [activeSlideId, slides]);
+  }, [activeSlideId]);
 
   // 실시간 HTML 업데이트 - 편집 시 즉시 반영 (테마, 폰트, 테두리 스타일 포함)
   useEffect(() => {
@@ -131,9 +141,50 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
           : tempSlide.backgroundImage)
       : undefined;
 
+    // Include title and content positions as custom elements if they exist
+    const allElements = [...(tempSlide.elements || [])];
+    
+    // Add title position as a custom element if it exists
+    if (tempSlide.titlePosition) {
+      allElements.push({
+        id: 'default-title',
+        type: 'text' as const,
+        content: tempSlide.title,
+        x: tempSlide.titlePosition.x,
+        y: tempSlide.titlePosition.y,
+        width: tempSlide.titlePosition.width,
+        height: tempSlide.titlePosition.height,
+        fontSize: tempSlide.titlePosition.fontSize || 24,
+        fontFamily: themeFont?.fontFamily || "'Segoe UI', system-ui, -apple-system, sans-serif",
+        color: tempSlide.backgroundImage ? '#FFFFFF' : theme.primary,
+        fontWeight: themeFont?.effects.fontWeight || '600',
+        textAlign: 'center' as const,
+        zIndex: 10,
+      });
+    }
+    
+    // Add content position as a custom element if it exists
+    if (tempSlide.contentPosition) {
+      allElements.push({
+        id: 'default-content',
+        type: 'text' as const,
+        content: tempSlide.content,
+        x: tempSlide.contentPosition.x,
+        y: tempSlide.contentPosition.y,
+        width: tempSlide.contentPosition.width,
+        height: tempSlide.contentPosition.height,
+        fontSize: tempSlide.contentPosition.fontSize || 16,
+        fontFamily: themeFont?.fontFamily || "'Segoe UI', system-ui, -apple-system, sans-serif",
+        color: tempSlide.backgroundImage ? '#F5F5F5' : theme.secondary,
+        fontWeight: '400',
+        textAlign: 'center' as const,
+        zIndex: 9,
+      });
+    }
+
     const updatedHtmlContent = generateSlideHTML(
-      tempSlide.title,
-      tempSlide.content,
+      tempSlide.titlePosition ? '' : tempSlide.title, // Don't pass title if we have custom position
+      tempSlide.contentPosition ? '' : tempSlide.content, // Don't pass content if we have custom position
       theme,
       aspectRatio,
       tempSlide.order,
@@ -145,7 +196,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
       tempSlide.themeOverlay || 0.3,
       tempSlide.backgroundType === 'color' ? tempSlide.backgroundColor : undefined,
       tempSlide.backgroundPattern,
-      tempSlide.elements,
+      allElements,
       'ppt' // 기본값
     );
 
@@ -159,7 +210,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
     // 변경사항이 있음을 표시 (테마/폰트/테두리 변경 시에도)
     setHasUnsavedChanges(true);
 
-  }, [tempSlide?.title, tempSlide?.content, tempSlide?.backgroundSeed, tempSlide?.backgroundBlur, tempSlide?.backgroundGrayscale, tempSlide?.slideLayout, tempSlide?.template, tempSlide?.backgroundType, tempSlide?.backgroundColor, tempSlide?.backgroundPattern, tempSlide?.elements, theme, aspectRatio, themeFont, slideBorderStyle]);
+  }, [tempSlide?.title, tempSlide?.content, tempSlide?.backgroundSeed, tempSlide?.backgroundBlur, tempSlide?.backgroundGrayscale, tempSlide?.slideLayout, tempSlide?.template, tempSlide?.backgroundType, tempSlide?.backgroundColor, tempSlide?.backgroundPattern, tempSlide?.elements, tempSlide?.titlePosition, tempSlide?.contentPosition, theme, aspectRatio, themeFont, slideBorderStyle]);
 
   // 자동 저장 - 변경사항을 실제 슬라이드에 저장
   useEffect(() => {
@@ -186,10 +237,51 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
       el.id === elementId ? { ...el, ...updates } : el
     ) || [];
 
+    // Include title and content positions as custom elements if they exist
+    const allElements = [...updatedElements];
+    
+    // Add title position as a custom element if it exists
+    if (tempSlide.titlePosition) {
+      allElements.push({
+        id: 'default-title',
+        type: 'text' as const,
+        content: tempSlide.title,
+        x: tempSlide.titlePosition.x,
+        y: tempSlide.titlePosition.y,
+        width: tempSlide.titlePosition.width,
+        height: tempSlide.titlePosition.height,
+        fontSize: tempSlide.titlePosition.fontSize || 24,
+        fontFamily: themeFont?.fontFamily || "'Segoe UI', system-ui, -apple-system, sans-serif",
+        color: tempSlide.backgroundImage ? '#FFFFFF' : theme.primary,
+        fontWeight: themeFont?.effects.fontWeight || '600',
+        textAlign: 'center' as const,
+        zIndex: 10,
+      });
+    }
+    
+    // Add content position as a custom element if it exists
+    if (tempSlide.contentPosition) {
+      allElements.push({
+        id: 'default-content',
+        type: 'text' as const,
+        content: tempSlide.content,
+        x: tempSlide.contentPosition.x,
+        y: tempSlide.contentPosition.y,
+        width: tempSlide.contentPosition.width,
+        height: tempSlide.contentPosition.height,
+        fontSize: tempSlide.contentPosition.fontSize || 16,
+        fontFamily: themeFont?.fontFamily || "'Segoe UI', system-ui, -apple-system, sans-serif",
+        color: tempSlide.backgroundImage ? '#F5F5F5' : theme.secondary,
+        fontWeight: '400',
+        textAlign: 'center' as const,
+        zIndex: 9,
+      });
+    }
+
     // HTML 콘텐츠 재생성
     const updatedHtmlContent = generateSlideHTML(
-      tempSlide.title,
-      tempSlide.content,
+      tempSlide.titlePosition ? '' : tempSlide.title, // Don't pass title if we have custom position
+      tempSlide.contentPosition ? '' : tempSlide.content, // Don't pass content if we have custom position
       theme,
       aspectRatio,
       tempSlide.order,
@@ -201,7 +293,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
       tempSlide.themeOverlay || 0.3,
       tempSlide.backgroundImage ? undefined : tempSlide.backgroundColor,
       tempSlide.backgroundPattern,
-      updatedElements,
+      allElements,
       'ppt' // 기본값
     );
 
@@ -219,10 +311,51 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
 
     const updatedElements = tempSlide.elements?.filter(el => el.id !== elementId) || [];
 
+    // Include title and content positions as custom elements if they exist
+    const allElements = [...updatedElements];
+    
+    // Add title position as a custom element if it exists
+    if (tempSlide.titlePosition) {
+      allElements.push({
+        id: 'default-title',
+        type: 'text' as const,
+        content: tempSlide.title,
+        x: tempSlide.titlePosition.x,
+        y: tempSlide.titlePosition.y,
+        width: tempSlide.titlePosition.width,
+        height: tempSlide.titlePosition.height,
+        fontSize: tempSlide.titlePosition.fontSize || 24,
+        fontFamily: themeFont?.fontFamily || "'Segoe UI', system-ui, -apple-system, sans-serif",
+        color: tempSlide.backgroundImage ? '#FFFFFF' : theme.primary,
+        fontWeight: themeFont?.effects.fontWeight || '600',
+        textAlign: 'center' as const,
+        zIndex: 10,
+      });
+    }
+    
+    // Add content position as a custom element if it exists
+    if (tempSlide.contentPosition) {
+      allElements.push({
+        id: 'default-content',
+        type: 'text' as const,
+        content: tempSlide.content,
+        x: tempSlide.contentPosition.x,
+        y: tempSlide.contentPosition.y,
+        width: tempSlide.contentPosition.width,
+        height: tempSlide.contentPosition.height,
+        fontSize: tempSlide.contentPosition.fontSize || 16,
+        fontFamily: themeFont?.fontFamily || "'Segoe UI', system-ui, -apple-system, sans-serif",
+        color: tempSlide.backgroundImage ? '#F5F5F5' : theme.secondary,
+        fontWeight: '400',
+        textAlign: 'center' as const,
+        zIndex: 9,
+      });
+    }
+
     // HTML 콘텐츠 재생성
     const updatedHtmlContent = generateSlideHTML(
-      tempSlide.title,
-      tempSlide.content,
+      tempSlide.titlePosition ? '' : tempSlide.title, // Don't pass title if we have custom position
+      tempSlide.contentPosition ? '' : tempSlide.content, // Don't pass content if we have custom position
       theme,
       aspectRatio,
       tempSlide.order,
@@ -234,7 +367,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
       tempSlide.themeOverlay || 0.3,
       tempSlide.backgroundImage ? undefined : tempSlide.backgroundColor,
       tempSlide.backgroundPattern,
-      updatedElements,
+      allElements,
       'ppt' // 기본값
     );
 
@@ -261,7 +394,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
     const newElement: SlideElement = {
       id: `element-${Date.now()}`,
       type,
-      content: type === 'text' ? '새 텍스트' : '',
+      content: type === 'text' ? (t.newText || (language === 'ko' ? '새 텍스트' : 'New Text')) : '',
       x: Math.random() * (containerWidth - 200),
       y: Math.random() * (containerHeight - 100),
       width: type === 'text' ? 200 : 150,
@@ -717,14 +850,14 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
     // 새 창에서 이미지 생성 처리
     const newWindow = window.open('', '_blank');
     if (!newWindow) {
-      alert('팝업이 차단되었습니다. 팝업을 허용해주세요.');
+      alert(t.popupBlocked || (language === 'ko' ? '팝업이 차단되었습니다. 팝업을 허용해주세요.' : 'Popup blocked. Please allow popups.'));
       return;
     }
 
     newWindow.document.write(`
       <html>
         <head>
-          <title>이미지 생성 중...</title>
+          <title>${t.generatingImage || (language === 'ko' ? '이미지 생성 중...' : 'Generating image...')}</title>
           <style>
             body {
               font-family: Arial, sans-serif;
@@ -760,8 +893,8 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
         <body>
           <div class="container">
             <div class="spinner"></div>
-            <h2>슬라이드 ${slide.order + 1} 이미지 생성 중...</h2>
-            <p>잠시만 기다려주세요.</p>
+            <h2>${t.generatingSlideImage || (language === 'ko' ? `슬라이드 ${slide.order + 1} 이미지 생성 중...` : `Generating slide ${slide.order + 1} image...`)}</h2>
+            <p>${t.pleaseWait || (language === 'ko' ? '잠시만 기다려주세요.' : 'Please wait.')}</p>
           </div>
         </body>
       </html>
@@ -806,9 +939,9 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
       // 완료 후 다운로드
       newWindow.document.body.innerHTML = `
         <div class="container">
-          <h2>✅ 이미지 생성 완료!</h2>
-          <p>다운로드가 시작됩니다...</p>
-          <button onclick="window.close()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">창 닫기</button>
+          <h2>✅ ${t.imageGenerationComplete || (language === 'ko' ? '이미지 생성 완료!' : 'Image generation complete!')}</h2>
+          <p>${t.downloadStarting || (language === 'ko' ? '다운로드가 시작됩니다...' : 'Download starting...')}</p>
+          <button onclick="window.close()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">${t.closeWindow || (language === 'ko' ? '창 닫기' : 'Close Window')}</button>
         </div>
       `;
 
@@ -826,9 +959,9 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
       // Image export error handled without logging sensitive information
       newWindow.document.body.innerHTML = `
         <div class="container">
-          <h2>❌ 오류 발생</h2>
-          <p>이미지 생성 중 오류가 발생했습니다.</p>
-          <button onclick="window.close()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer;">창 닫기</button>
+          <h2>❌ ${t.errorOccurred || (language === 'ko' ? '오류 발생' : 'Error occurred')}</h2>
+          <p>${t.imageGenerationError || (language === 'ko' ? '이미지 생성 중 오류가 발생했습니다.' : 'An error occurred while generating the image.')}</p>
+          <button onclick="window.close()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer;">${t.closeWindow || (language === 'ko' ? '창 닫기' : 'Close Window')}</button>
         </div>
       `;
     }
@@ -996,14 +1129,14 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                 <div className="flex items-center gap-2">
                   {showTypingEffect && index < slidesDisplayCount ? (
                     <TypingEffect
-                      text={`슬라이드 ${index + 1}`}
+                      text={`${t.slide || (language === 'ko' ? '슬라이드' : 'Slide')} ${index + 1}`}
                       speed={50}
                       startDelay={index * 500}
                       className="text-sm font-medium text-gray-600"
                     />
                   ) : (
                     <span className="text-sm font-medium text-gray-600">
-                      슬라이드 {index + 1}
+                      {t.slide || (language === 'ko' ? '슬라이드' : 'Slide')} {index + 1}
                     </span>
                   )}
                   <SlideOrderController
@@ -1018,7 +1151,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                   className="flex items-center gap-1 px-2 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
                 >
                   <Download className="w-3 h-3" />
-                  이미지 저장
+                  {t.saveImage || (language === 'ko' ? '이미지 저장' : 'Save Image')}
                 </button>
               </div>
 
@@ -1034,7 +1167,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                   language={language}
                   onTabChange={onTabChange}
                   onDelete={() => {
-                    if (window.confirm('이 슬라이드를 삭제하시겠습니까?')) {
+                    if (window.confirm(t.confirmDeleteSlide || (language === 'ko' ? '이 슬라이드를 삭제하시겠습니까?' : 'Delete this slide?'))) {
                       onSlideDelete(slide.id);
                     }
                   }}
@@ -1066,10 +1199,10 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                           }`}>
                             <span className="text-xs font-semibold">{index + 1} / {slides.length}</span>
                           </div>
-                          <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>슬라이드 편집</span>
+                          <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>{t.editSlide}</span>
                           {hasUnsavedChanges && (
                             <span className="text-xs text-orange-600 bg-orange-100 px-2 py-1 rounded-full">
-                              자동 저장 중...
+                              {t.autoSaving || (language === 'ko' ? '자동 저장 중...' : 'Auto-saving...')}
                             </span>
                           )}
                         </div>
@@ -1077,66 +1210,11 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => {
-                              // 편집 완료 전에 마지막 변경사항 강제 저장
-                              if (tempSlide && hasUnsavedChanges) {
-                                // 배경 타입에 따라 표시할 배경 결정
-                                const finalBackgroundImage = (tempSlide.backgroundType === 'image' || !tempSlide.backgroundType)
-                                  ? (tempSlide.backgroundSeed
-                                      ? generatePicsumImage(
-                                          aspectRatio.width,
-                                          aspectRatio.height,
-                                          tempSlide.backgroundSeed,
-                                          tempSlide.backgroundBlur || 2,
-                                          tempSlide.backgroundGrayscale || false
-                                        )
-                                      : tempSlide.backgroundImage)
-                                  : undefined;
-
-                                const updatedSlide = {
-                                  ...tempSlide,
-                                  backgroundImage: finalBackgroundImage,
-                                  htmlContent: generateSlideHTML(
-                                    tempSlide.title,
-                                    tempSlide.content,
-                                    theme,
-                                    aspectRatio,
-                                    tempSlide.order,
-                                    undefined,
-                                    undefined,
-                                    tempSlide.slideLayout || tempSlide.template || 'title-top-content-bottom',
-                                    finalBackgroundImage,
-                                    tempSlide.backgroundBlur || 2,
-                                    tempSlide.themeOverlay || 0.3,
-                                    tempSlide.backgroundType === 'color' ? tempSlide.backgroundColor : undefined,
-                                    tempSlide.backgroundPattern,
-                                    tempSlide.elements,
-                                    'ppt' // 기본값
-                                  ),
-                                  elements: tempSlide.elements || [],
-                                };
-
-                                onSlideUpdate(updatedSlide);
-                              }
-
-                              // 편집 모드는 유지하고 변경사항만 저장
-                              setHasUnsavedChanges(false);
-                            }}
-                            className="px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                          >
-                            변경사항 저장
-                          </button>
-                          <button
-                            onClick={() => {
-                              if (hasUnsavedChanges) {
-                                if (!window.confirm('저장하지 않은 변경사항이 있습니다. 편집을 종료하시겠습니까?')) {
-                                  return;
-                                }
-                              }
                               onSlideSelect('');
                             }}
                             className="px-3 py-2 text-sm bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
                           >
-                            편집 종료
+                            {t.exitEdit || (language === 'ko' ? '편집 종료' : 'Exit Edit')}
                           </button>
                         </div>
                       </div>
@@ -1410,7 +1488,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                         }}
                                         onClick={(e) => e.stopPropagation()}
                                       >
-                                        {tempSlide.title || '제목을 입력하세요'}
+                                        {tempSlide.title || (t.enterTitle || (language === 'ko' ? '제목을 입력하세요' : 'Enter title'))}
                                       </h1>
                                     )}
                                     
@@ -1424,7 +1502,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                             setEditingElement('slide-title');
                                           }}
                                           className="absolute -top-3 -right-3 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors z-50 pointer-events-auto shadow-lg"
-                                          title="편집"
+                                          title={t.edit || (language === 'ko' ? '편집' : 'Edit')}
                                         >
                                           <Type className="w-3 h-3" />
                                         </button>
@@ -1436,7 +1514,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                             e.stopPropagation();
                                             handleMouseDown(e, 'slide-title', 'resize');
                                           }}
-                                          title="크기 조절"
+                                          title={t.resize || (language === 'ko' ? '크기 조절' : 'Resize')}
                                         />
 
                                         {/* 이동 핸들 (중앙) */}
@@ -1446,7 +1524,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                             e.stopPropagation();
                                             handleMouseDown(e, 'slide-title', 'move');
                                           }}
-                                          title="이동하려면 드래그하세요"
+                                          title={t.dragToMove || (language === 'ko' ? '이동하려면 드래그하세요' : 'Drag to move')}
                                         >
                                           <Move className="w-3 h-3 text-white" />
                                         </div>
@@ -1541,7 +1619,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                           }}
                                           onClick={(e) => e.stopPropagation()}
                                         >
-                                          {tempSlide.content || '내용을 입력하세요'}
+                                          {tempSlide.content || (t.enterContent || (language === 'ko' ? '내용을 입력하세요' : 'Enter content'))}
                                         </div>
                                       )}
                                       
@@ -1555,7 +1633,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                               setEditingElement('slide-content');
                                             }}
                                             className="absolute -top-3 -right-3 w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center hover:bg-green-600 transition-colors z-50 pointer-events-auto shadow-lg"
-                                            title="편집"
+                                            title={t.edit || (language === 'ko' ? '편집' : 'Edit')}
                                           >
                                             <Type className="w-3 h-3" />
                                           </button>
@@ -1567,7 +1645,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                               e.stopPropagation();
                                               handleMouseDown(e, 'slide-content', 'resize');
                                             }}
-                                            title="크기 조절"
+                                            title={t.resize || (language === 'ko' ? '크기 조절' : 'Resize')}
                                           />
 
                                           {/* 이동 핸들 (중앙) */}
@@ -1577,7 +1655,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                               e.stopPropagation();
                                               handleMouseDown(e, 'slide-content', 'move');
                                             }}
-                                            title="이동하려면 드래그하세요"
+                                            title={t.dragToMove || (language === 'ko' ? '이동하려면 드래그하세요' : 'Drag to move')}
                                           >
                                             <Move className="w-3 h-3 text-white" />
                                           </div>
@@ -1640,7 +1718,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                         deleteElement(element.id);
                                       }}
                                       className="absolute -top-3 -right-3 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors z-50 pointer-events-auto shadow-lg"
-                                      title="삭제"
+                                      title={t.delete || (language === 'ko' ? '삭제' : 'Delete')}
                                     >
                                       <Trash2 className="w-3 h-3" />
                                     </button>
@@ -1662,7 +1740,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                         e.stopPropagation();
                                         handleRotationStart(e, element.id);
                                       }}
-                                      title="회전하려면 드래그하세요"
+                                      title={t.dragToRotate || (language === 'ko' ? '회전하려면 드래그하세요' : 'Drag to rotate')}
                                     >
                                       <RotateCw className="w-3 h-3 text-white" />
                                     </div>
@@ -1728,7 +1806,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                         whiteSpace: 'pre-wrap',
                                       }}
                                     >
-                                      {element.content || '텍스트를 입력하세요'}
+                                      {element.content || (t.enterText || (language === 'ko' ? '텍스트를 입력하세요' : 'Enter text'))}
                                     </div>
                                   )
                                 ) : (
@@ -1760,8 +1838,8 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                         >
                                           <div className="text-center">
                                             <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                                            <p className="text-sm text-gray-500">이미지 업로드</p>
-                                            <p className="text-xs text-gray-400 mt-1">잘못된 이미지 형식</p>
+                                            <p className="text-sm text-gray-500">{t.uploadImage}</p>
+                                            <p className="text-xs text-gray-400 mt-1">{t.invalidImageFormat || (language === 'ko' ? '잘못된 이미지 형식' : 'Invalid image format')}</p>
                                           </div>
                                         </div>
                                       )
@@ -1792,20 +1870,20 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                             <div className={`${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-300'} rounded-lg border p-3 lg:p-4 space-y-3 lg:space-y-4 overflow-y-auto`}>
                               <div className="flex items-center justify-between">
                                 <h4 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-                                  {selectedElement.type === 'text' ? '📝 텍스트 속성' : '🖼️ 이미지 속성'}
+                                  {selectedElement.type === 'text' ? `📝 ${t.textProperties}` : `🖼️ ${t.imageProperties || (language === 'ko' ? '이미지 속성' : 'Image Properties')}`}
                                 </h4>
                                 <div className="flex items-center gap-2">
                                   <button
                                     onClick={() => deleteElement(selectedElement.id)}
                                     className={`text-sm px-2 py-1 rounded ${isDarkMode ? 'text-red-400 hover:text-red-300 hover:bg-red-900/20' : 'text-red-600 hover:text-red-700 hover:bg-red-50'} transition-colors`}
-                                    title="요소 삭제"
+                                    title={t.deleteElement || (language === 'ko' ? '요소 삭제' : 'Delete element')}
                                   >
                                     🗑️
                                   </button>
                                   <button
                                     onClick={() => setSelectedElementId(undefined)}
                                     className={`text-sm ${isDarkMode ? 'text-gray-400 hover:text-gray-200' : 'text-gray-500 hover:text-gray-700'}`}
-                                    title="속성 패널 닫기"
+                                    title={t.closePropertyPanel || (language === 'ko' ? '속성 패널 닫기' : 'Close property panel')}
                                   >
                                     ✕
                                   </button>
@@ -1814,12 +1892,12 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
 
                               {/* 우선순위 조절 */}
                               <div className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg p-3`}>
-                                <label className={`block text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-700'} mb-2`}>우선순위 (z-index)</label>
+                                <label className={`block text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-700'} mb-2`}>{t.priority || (language === 'ko' ? '우선순위' : 'Priority')} (z-index)</label>
                                 <div className="flex items-center gap-2">
                                   <button
                                     onClick={() => updateElement(selectedElement.id, { zIndex: Math.max(1, (selectedElement.zIndex || 1) - 1) })}
                                     className={`px-2 py-1 text-xs rounded ${isDarkMode ? 'bg-gray-600 hover:bg-gray-500 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}
-                                    title="뒤로 보내기"
+                                    title={t.sendToBack || (language === 'ko' ? '뒤로 보내기' : 'Send to back')}
                                   >
                                     ↓
                                   </button>
@@ -1829,7 +1907,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                   <button
                                     onClick={() => updateElement(selectedElement.id, { zIndex: (selectedElement.zIndex || 1) + 1 })}
                                     className={`px-2 py-1 text-xs rounded ${isDarkMode ? 'bg-gray-600 hover:bg-gray-500 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}
-                                    title="앞으로 보내기"
+                                    title={t.bringToFront || (language === 'ko' ? '앞으로 보내기' : 'Bring to front')}
                                   >
                                     ↑
                                   </button>
@@ -1840,20 +1918,20 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                 <div className="space-y-3">
                                   {/* 텍스트 편집 */}
                                   <div>
-                                    <label className={`block text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-700'} mb-1`}>텍스트</label>
+                                    <label className={`block text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-700'} mb-1`}>{t.text || (language === 'ko' ? '텍스트' : 'Text')}</label>
                                     <textarea
                                       value={selectedElement.content}
                                       onChange={(e) => updateElement(selectedElement.id, { content: e.target.value })}
                                       className={`w-full p-2 border rounded-lg resize-none ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'} focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                                       rows={3}
-                                      placeholder="텍스트를 입력하세요"
+                                      placeholder={t.enterText || (language === 'ko' ? '텍스트를 입력하세요' : 'Enter text')}
                                     />
                                   </div>
 
                                   {/* 글꼴 및 스타일 */}
                                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                     <div>
-                                      <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>글꼴</label>
+                                      <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>{t.fontFamily}</label>
                                       <select
                                         value={selectedElement.fontFamily || 'Noto Sans KR'}
                                         onChange={(e) => updateElement(selectedElement.id, { fontFamily: e.target.value })}
@@ -1872,7 +1950,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                       </select>
                                     </div>
                                     <div>
-                                      <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>크기</label>
+                                      <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>{t.fontSize}</label>
                                       <input
                                         type="number"
                                         min="8"
@@ -1887,7 +1965,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                   {/* 색상 및 정렬 */}
                                   <div className="grid grid-cols-2 gap-2">
                                     <div>
-                                      <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>색상</label>
+                                      <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>{t.fontColor}</label>
                                       <div className="flex items-center gap-1">
                                         <input
                                           type="color"
@@ -1905,15 +1983,15 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                       </div>
                                     </div>
                                     <div>
-                                      <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>정렬</label>
+                                      <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>{t.textAlign}</label>
                                       <select
                                         value={selectedElement.textAlign || 'left'}
                                         onChange={(e) => updateElement(selectedElement.id, { textAlign: e.target.value as 'left' | 'center' | 'right' })}
                                         className={`w-full px-2 py-1 border rounded text-xs ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
                                       >
-                                        <option value="left">왼쪽</option>
-                                        <option value="center">가운데</option>
-                                        <option value="right">오른쪽</option>
+                                        <option value="left">{t.left}</option>
+                                        <option value="center">{t.center}</option>
+                                        <option value="right">{t.right}</option>
                                       </select>
                                     </div>
                                   </div>
@@ -1921,15 +1999,15 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                   {/* 굵기 및 위치 */}
                                   <div className="space-y-2">
                                     <div>
-                                      <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>굵기</label>
+                                      <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>{t.fontWeight}</label>
                                       <select
                                         value={selectedElement.fontWeight || 'normal'}
                                         onChange={(e) => updateElement(selectedElement.id, { fontWeight: e.target.value })}
                                         className={`w-full px-2 py-1 border rounded text-xs ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
                                       >
-                                        <option value="normal">보통</option>
-                                        <option value="bold">굵게</option>
-                                        <option value="lighter">가늘게</option>
+                                        <option value="normal">{t.normal}</option>
+                                        <option value="bold">{t.bold}</option>
+                                        <option value="lighter">{t.lighter || (language === 'ko' ? '가늘게' : 'Lighter')}</option>
                                       </select>
                                     </div>
 
@@ -1954,7 +2032,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                         />
                                       </div>
                                       <div>
-                                        <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>너비</label>
+                                        <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>{t.width || (language === 'ko' ? '너비' : 'Width')}</label>
                                         <input
                                           type="number"
                                           value={Math.round(selectedElement.width)}
@@ -1963,7 +2041,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                         />
                                       </div>
                                       <div>
-                                        <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>높이</label>
+                                        <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>{t.height || (language === 'ko' ? '높이' : 'Height')}</label>
                                         <input
                                           type="number"
                                           value={Math.round(selectedElement.height)}
@@ -1976,7 +2054,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
 
                                   {/* 회전 */}
                                   <div>
-                                    <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>회전 ({Math.round(selectedElement.rotation || 0)}°)</label>
+                                    <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>{t.rotation || (language === 'ko' ? '회전' : 'Rotation')} ({Math.round(selectedElement.rotation || 0)}°)</label>
                                     <div className="flex items-center gap-2">
                                       <input
                                         type="range"
@@ -1989,9 +2067,9 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                       <button
                                         onClick={() => updateElement(selectedElement.id, { rotation: 0 })}
                                         className={`px-2 py-1 text-xs rounded ${isDarkMode ? 'bg-gray-600 hover:bg-gray-500 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}
-                                        title="회전 초기화"
+                                        title={t.resetRotation || (language === 'ko' ? '회전 초기화' : 'Reset rotation')}
                                       >
-                                        초기화
+                                        {t.reset || (language === 'ko' ? '초기화' : 'Reset')}
                                       </button>
                                     </div>
                                   </div>
@@ -2003,7 +2081,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                     className="w-full flex items-center justify-center gap-1 px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
                                   >
                                     <Upload className="w-3 h-3" />
-                                    이미지 변경
+                                    {t.changeImage || (language === 'ko' ? '이미지 변경' : 'Change Image')}
                                   </button>
 
                                   {/* 위치 및 크기 */}
@@ -2048,7 +2126,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
 
                                   {/* 회전 */}
                                   <div>
-                                    <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>회전 ({Math.round(selectedElement.rotation || 0)}°)</label>
+                                    <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>{t.rotation || (language === 'ko' ? '회전' : 'Rotation')} ({Math.round(selectedElement.rotation || 0)}°)</label>
                                     <div className="flex items-center gap-2">
                                       <input
                                         type="range"
@@ -2061,9 +2139,9 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                       <button
                                         onClick={() => updateElement(selectedElement.id, { rotation: 0 })}
                                         className={`px-2 py-1 text-xs rounded ${isDarkMode ? 'bg-gray-600 hover:bg-gray-500 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}
-                                        title="회전 초기화"
+                                        title={t.resetRotation || (language === 'ko' ? '회전 초기화' : 'Reset rotation')}
                                       >
-                                        초기화
+                                        {t.reset || (language === 'ko' ? '초기화' : 'Reset')}
                                       </button>
                                     </div>
                                   </div>

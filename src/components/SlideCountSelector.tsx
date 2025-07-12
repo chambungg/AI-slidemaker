@@ -69,7 +69,7 @@ export const SlideCountSelector: React.FC<SlideCountSelectorProps> = ({
                 : 'bg-white border-gray-300 text-gray-900'
             }`}
           />
-          <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>개</span>
+          <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>{language === 'ko' ? '개' : ''}</span>
         </div>
         
         <button
@@ -100,8 +100,8 @@ export const SlideCountSelector: React.FC<SlideCountSelectorProps> = ({
         <div className={`flex justify-between text-xs ${
           isDarkMode ? 'text-gray-400' : 'text-gray-500'
         }`}>
-          <span>1개</span>
-          <span>20개</span>
+          <span>{language === 'ko' ? '1개' : '1'}</span>
+          <span>{language === 'ko' ? '20개' : '20'}</span>
         </div>
       </div>
       
@@ -123,7 +123,7 @@ export const SlideCountSelector: React.FC<SlideCountSelectorProps> = ({
               }
             `}
           >
-            {recommendedCount}개
+            {recommendedCount}{language === 'ko' ? '개' : ''}
           </button>
         ))}
       </div>
