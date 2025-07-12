@@ -178,6 +178,7 @@ export const generatePicsumImage = (
   let url = `https://picsum.photos/id/${imageId}/${width}/${height}`;
   
   const params = new URLSearchParams();
+  // Issue #9 fix: Support blur 0 (only add blur param if blur > 0)
   if (blur && blur > 0) {params.append('blur', blur.toString());}
   if (grayscale) {params.append('grayscale', '');}
   

@@ -97,7 +97,7 @@ export const ImageSearch: React.FC<ImageSearchProps> = ({
                 onClick={() => handleImageSelect(image)}
                 className="relative group overflow-hidden rounded border hover:border-blue-500 transition-colors h-[200px]"
               >
-                {retryingImages.has(image.id) ? (
+                {(retryingImages.has(image.id) || imageLoadErrors[image.id]) ? (
                   <div className="w-full h-full flex items-center justify-center bg-gray-100">
                     <RefreshCw className="w-6 h-6 animate-spin text-gray-400" />
                   </div>
@@ -108,27 +108,26 @@ export const ImageSearch: React.FC<ImageSearchProps> = ({
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                     onError={() => {
                       const errorCount = imageLoadErrors[image.id] || 0;
-                      if (errorCount < 5) {
-                        setImageLoadErrors(prev => ({ ...prev, [image.id]: errorCount + 1 }));
-                        setRetryingImages(prev => new Set(prev).add(image.id));
-                        
-                        // Clear any existing timeout
-                        if (retryTimeouts.current[image.id]) {
-                          clearTimeout(retryTimeouts.current[image.id]);
-                        }
-                        
-                        // Retry after 5 seconds
-                        retryTimeouts.current[image.id] = setTimeout(() => {
-                          setRetryingImages(prev => {
-                            const newSet = new Set(prev);
-                            newSet.delete(image.id);
-                            return newSet;
-                          });
-                          // Force re-render by updating a dummy state
-                          const img = new Image();
-                          img.src = image.src.small;
-                        }, 5000);
+                      // Issue #8 fix: Auto-retry without error messages
+                      setImageLoadErrors(prev => ({ ...prev, [image.id]: errorCount + 1 }));
+                      setRetryingImages(prev => new Set(prev).add(image.id));
+                      
+                      // Clear any existing timeout
+                      if (retryTimeouts.current[image.id]) {
+                        clearTimeout(retryTimeouts.current[image.id]);
                       }
+                      
+                      // Auto-retry after 2 seconds (reduced from 5)
+                      retryTimeouts.current[image.id] = setTimeout(() => {
+                        setRetryingImages(prev => {
+                          const newSet = new Set(prev);
+                          newSet.delete(image.id);
+                          return newSet;
+                        });
+                        // Force re-render by updating a dummy state
+                        const img = new Image();
+                        img.src = image.src.small + '?retry=' + Date.now();
+                      }, 2000);
                     }}
                     onLoad={() => {
                       // Clear retry state on successful load

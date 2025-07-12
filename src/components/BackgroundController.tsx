@@ -102,7 +102,8 @@ export const BackgroundController: React.FC<BackgroundControllerProps> = ({
     const img = new Image();
     img.onload = () => handleImageLoad(seed);
     img.onerror = () => handleImageError(seed);
-    img.src = `${generatePicsumImage(90, 90, seed, blur, grayscale)}?t=${Date.now()}`;
+    // Issue #10 fix: Change thumbnail size to 150x150
+    img.src = `${generatePicsumImage(150, 150, seed, blur, grayscale)}?t=${Date.now()}`;
   };
 
   const handleCurrentImageReload = () => {
@@ -281,7 +282,8 @@ export const BackgroundController: React.FC<BackgroundControllerProps> = ({
             <h5 className="text-xs font-medium text-gray-600">다른 이미지 후보</h5>
             <div className="grid grid-cols-5 gap-1">
               {candidateSeeds.map((candidateSeed, index) => {
-                const candidateUrl = generatePicsumImage(90, 90, candidateSeed, blur, grayscale); // 90x90px로 최적화
+                // Issue #10 fix: Change thumbnail size to 150x150
+                const candidateUrl = generatePicsumImage(150, 150, candidateSeed, blur, grayscale);
                 const isLoading = loadingImages[candidateSeed];
                 const hasError = errorImages[candidateSeed];
                 
@@ -365,12 +367,7 @@ export const BackgroundController: React.FC<BackgroundControllerProps> = ({
             </div>
           </div>
 
-          {/* 시드 정보 (개발용) */}
-          <div className={`text-xs truncate ${
-            isDarkMode ? 'text-gray-500' : 'text-gray-400'
-          }`}>
-            시드: {currentSeed}
-          </div>
+          {/* Issue #11 fix: Hide seed display */}
         </>
       )}
 

@@ -125,7 +125,8 @@ const createDefaultElements = (
       height: positions.title.height,
       fontSize: fontSizes.title * 16, // rem을 px로 변환
       fontFamily: fontFamily,
-      color: backgroundImage ? '#FFFFFF' : (theme?.primary || '#000000'),
+      // Issue #5 fix: Use theme colors properly with any background type
+      color: (backgroundImage || backgroundColor) ? '#FFFFFF' : (theme?.primary || '#000000'),
       fontWeight: fontWeight,
       textAlign: layout.includes('right') ? 'right' : layout.includes('left') ? 'left' : 'center',
       zIndex: 10,
@@ -145,7 +146,8 @@ const createDefaultElements = (
       height: positions.content.height,
       fontSize: fontSizes.content * 16, // rem을 px로 변환
       fontFamily: fontFamily,
-      color: backgroundImage ? '#F5F5F5' : (theme?.secondary || '#333333'),
+      // Issue #5 fix: Use theme colors properly with any background type
+      color: (backgroundImage || backgroundColor) ? '#F5F5F5' : (theme?.secondary || '#333333'),
       fontWeight: '400',
       textAlign: layout.includes('right') ? 'right' : layout.includes('left') ? 'left' : 'center',
       zIndex: 9,
@@ -172,6 +174,7 @@ export const generateSlides = async (
     const slides: Slide[] = slideData.map((slide, index) => {
       const layout = getLayoutForSlideType(slideType, index, templateStyle);
       const backgroundOptions = createDefaultBackgroundOptions(slide.content);
+      // Issue #1 fix: Ensure first slide always gets background
       const backgroundImage = generatePicsumImage(
         aspectRatio.width,
         aspectRatio.height,
@@ -773,15 +776,7 @@ export const generateSlideHTML = (
       baseBackground = `background: linear-gradient(135deg, ${theme.primary}15, ${theme.secondary}15);`;
     }
 
-    // 패턴 오버레이 추가 (배경 관련 패턴만)
-    if (backgroundPattern && backgroundPattern !== 'none') {
-      const patternStyle = getPatternStyle(backgroundPattern);
-      // transform/filter 기반 패턴은 컨테이너에 적용되므로 여기서는 background 관련만 적용
-      if (!patternStyle.includes('transform:') && !patternStyle.includes('filter:')) {
-        return `${baseBackground} ${patternStyle}`;
-      }
-    }
-    
+    // Issue #12 fix: Pattern/filter overlay applies on top of existing backgrounds
     return baseBackground;
   };
 
@@ -824,6 +819,18 @@ export const generateSlideHTML = (
         z-index: 0;
       "></div>
       
+      ${backgroundPattern && backgroundPattern !== 'none' ? `
+        <div style="
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          ${getPatternStyle(backgroundPattern)}
+          z-index: 1;
+          pointer-events: none;
+        "></div>
+      ` : ''}
       
       ${allElements && allElements.length > 0 ? allElements.map(element => `
         <div style="
@@ -833,7 +840,7 @@ export const generateSlideHTML = (
           width: ${element.width}px;
           height: ${element.height}px;
           transform: rotate(${element.rotation || 0}deg);
-          z-index: ${element.zIndex || 1};
+          z-index: ${element.zIndex || 2}; /* Adjusted for pattern overlay */
           background-color: ${element.backgroundColor || 'transparent'};
           border: ${element.borderWidth || 0}px solid ${element.borderColor || 'transparent'};
         ">

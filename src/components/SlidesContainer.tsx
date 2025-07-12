@@ -112,7 +112,19 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
             aspectRatio: slide.aspectRatio,
           } : slide);
         } else {
-          setTempSlide({ ...slide });
+          // Issue #3 fix: Preserve all background properties when re-entering edit mode
+          setTempSlide({ 
+            ...slide,
+            // Ensure all background properties are preserved
+            backgroundImage: slide.backgroundImage,
+            backgroundSeed: slide.backgroundSeed,
+            backgroundBlur: slide.backgroundBlur,
+            backgroundGrayscale: slide.backgroundGrayscale,
+            backgroundType: slide.backgroundType,
+            backgroundColor: slide.backgroundColor,
+            backgroundPattern: slide.backgroundPattern,
+            themeOverlay: slide.themeOverlay
+          });
           setHasUnsavedChanges(false);
         }
       }
@@ -469,8 +481,9 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
       const deltaY = e.clientY - initialMouseY;
 
       if (action === 'move') {
-        const newX = Math.max(0, Math.min(initialX + deltaX, containerRect.width - element.width));
-        const newY = Math.max(0, Math.min(initialY + deltaY, containerRect.height - element.height));
+        // Issues #6 & #7 fix: Remove positioning constraints - allow free positioning
+        const newX = initialX + deltaX;
+        const newY = initialY + deltaY;
         
         if (isBuiltinElement) {
           // Update built-in element position
@@ -1070,44 +1083,49 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
   const selectedElement = tempSlide?.elements?.find(el => el.id === selectedElementId);
 
   // Calculate slide container size based on aspect ratio - responsive
+  // Issue #2 fix: Make getSlideContainerStyle truly responsive
   const getSlideContainerStyle = () => {
-    // 편집 모드와 미리보기 모드에 따라 다른 크기 적용
     const isEditMode = activeSlideId !== null;
+    const aspectRatioValue = aspectRatio.width / aspectRatio.height;
     
     if (isEditMode) {
-      // 편집 모드: 더 큰 크기
-      const maxWidth = 900;
-      const maxHeight = 700;
-      const minWidth = 600;
-      const minHeight = 400;
+      // 편집 모드: 반응형 크기
+      const availableWidth = window.innerWidth - 400; // 사이드바 공간 고려
+      const availableHeight = window.innerHeight - 200; // 헤더/푸터 공간 고려
       
-      const aspectRatioValue = aspectRatio.width / aspectRatio.height;
       let width, height;
-
-      if (aspectRatioValue > maxWidth / maxHeight) {
-        width = Math.max(minWidth, Math.min(maxWidth, window.innerWidth * 0.6));
-        height = width / aspectRatioValue;
-      } else {
-        height = Math.max(minHeight, Math.min(maxHeight, window.innerHeight * 0.6));
+      
+      // 화면 크기에 맞춰 동적으로 조정
+      if (availableWidth / availableHeight > aspectRatioValue) {
+        // 세로가 제약
+        height = Math.min(availableHeight, 800);
         width = height * aspectRatioValue;
+      } else {
+        // 가로가 제약
+        width = Math.min(availableWidth, 1000);
+        height = width / aspectRatioValue;
       }
+      
+      // 최소 크기 보장
+      width = Math.max(width, 400);
+      height = Math.max(height, 300);
 
       return {
         width: `${width}px`,
         height: `${height}px`,
-        maxWidth: '100%',
+        maxWidth: '90vw',
+        maxHeight: '80vh',
         margin: '0 auto'
       };
     } else {
-      // 미리보기 모드: 적당한 크기로 전체 내용이 보이도록
-      const containerWidth = Math.min(500, window.innerWidth * 0.9); // 반응형 너비
-      const aspectRatioValue = aspectRatio.width / aspectRatio.height;
+      // 미리보기 모드: 반응형 크기
+      const containerWidth = Math.min(500, window.innerWidth * 0.9);
       const containerHeight = containerWidth / aspectRatioValue;
 
       return {
-        width: `${containerWidth}px`,
-        height: `${containerHeight}px`,
-        maxWidth: '100%',
+        width: '100%',
+        maxWidth: `${containerWidth}px`,
+        aspectRatio: `${aspectRatio.width}/${aspectRatio.height}`,
         margin: '0 auto'
       };
     }
