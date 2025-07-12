@@ -10,13 +10,13 @@ export const getLanguageInstruction = (language: 'ko' | 'en'): string => {
     : 'Please respond in English.';
 };
 
-export const getSlideTypeInstruction = (slideType: 'card-news' | 'ppt' | 'image-card', language: 'ko' | 'en'): string => {
+export const getSlideTypeInstruction = (slideType: 'cardnews' | 'ppt' | 'imagecard', language: 'ko' | 'en'): string => {
   switch (slideType) {
-    case 'card-news':
+    case 'cardnews':
       return language === 'ko' 
         ? '카드뉴스 형태로 만들어주세요. 각 슬라이드는 간결하고 임팩트 있는 메시지로 구성하세요. 내용은 최소 20자에서 최대 40자로 작성하고, 핵심 메시지만 포함하여 한눈에 이해할 수 있게 해주세요.'
         : 'Create in card news format. Each slide should have concise and impactful messages. Content should be minimum 20 characters to maximum 40 characters, including only key messages for instant understanding.';
-    case 'image-card':
+    case 'imagecard':
       return language === 'ko'
         ? '이미지카드 형태로 만들어주세요. 각 슬라이드에는 관련 이미지가 배치되고, 그 이미지에 알맞는 매우 간결한 메시지를 표시하세요. 내용은 최소 10자에서 최대 20자로 작성하여 이미지와 함께 강력한 시각적 메시지를 전달하세요.'
         : 'Create in image card format. Each slide should have a relevant image with very concise messages. Content should be minimum 10 characters to maximum 20 characters to deliver powerful visual messages together with images.';

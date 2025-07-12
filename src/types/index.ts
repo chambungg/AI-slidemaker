@@ -13,6 +13,7 @@ export interface Slide {
   themeOverlay?: number;
   backgroundSeed?: string;
   backgroundGrayscale?: boolean;
+  backgroundType?: 'image' | 'color';
   slideLayout?: 'title-top-content-bottom' | 'title-left-content-right' | 'title-right-content-left' | 'title-only' | 'title-small-top-left' | 'title-small-top-right';
   elements?: SlideElement[];
   history?: SlideState[];

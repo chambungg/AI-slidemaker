@@ -71,12 +71,13 @@ const SLIDE_TEMPLATES: SlideTemplate[] = [
 export const SlideTemplateSelector: React.FC<SlideTemplateSelectorProps> = ({
   currentTemplate,
   onTemplateChange,
+  isDarkMode = false,
 }) => {
   return (
-    <div className="bg-white rounded-lg border p-3 space-y-3">
+    <div className={`${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'} rounded-lg border p-3 space-y-3 transition-colors`}>
       <div className="flex items-center gap-2">
-        <Layout className="w-4 h-4 text-gray-600" />
-        <h4 className="text-sm font-semibold text-gray-800">슬라이드 템플릿</h4>
+        <Layout className={`w-4 h-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
+        <h4 className={`text-sm font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>슬라이드 템플릿</h4>
       </div>
       
       <div className="grid grid-cols-3 gap-2">
@@ -87,15 +88,15 @@ export const SlideTemplateSelector: React.FC<SlideTemplateSelectorProps> = ({
             className={`
               relative p-2 rounded-lg border-2 transition-all text-center
               ${currentTemplate === template.id 
-                ? 'border-blue-500 bg-blue-50 shadow-md' 
-                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                ? `border-blue-500 ${isDarkMode ? 'bg-blue-900/30' : 'bg-blue-50'} shadow-md` 
+                : `${isDarkMode ? 'border-gray-600 hover:border-gray-500 hover:bg-gray-700' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'}`
               }
             `}
             title={template.description}
           >
             <div className="flex flex-col items-center gap-1">
               {template.icon}
-              <span className="text-xs font-medium text-gray-700 truncate">
+              <span className={`text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} truncate`}>
                 {template.name}
               </span>
             </div>

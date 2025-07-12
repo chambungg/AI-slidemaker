@@ -8,11 +8,13 @@ interface BackgroundControllerProps {
   grayscale: boolean;
   width: number;
   height: number;
+  backgroundType?: 'image' | 'color';
   onSeedChange: (seed: string) => void;
   onBlurChange: (blur: number) => void;
   onGrayscaleChange: (grayscale: boolean) => void;
   onBackgroundChange?: (background: string) => void;
   onPatternChange?: (pattern: string) => void;
+  onBackgroundTypeChange?: (type: 'image' | 'color') => void;
   isDarkMode?: boolean;
 }
 
@@ -22,11 +24,13 @@ export const BackgroundController: React.FC<BackgroundControllerProps> = ({
   grayscale,
   width,
   height,
+  backgroundType = 'image',
   onSeedChange,
   onBlurChange,
   onGrayscaleChange,
   onBackgroundChange,
   onPatternChange,
+  onBackgroundTypeChange,
   isDarkMode = false,
 }) => {
   // 후보 이미지들을 고정하기 위한 상태
@@ -119,153 +123,193 @@ export const BackgroundController: React.FC<BackgroundControllerProps> = ({
           isDarkMode ? 'text-white' : 'text-gray-800'
         }`}>
           <ImageIcon className="w-4 h-4" />
-          배경 이미지
+          배경 설정
         </h4>
         
         {/* 랜덤 이미지 버튼 */}
+        {backgroundType === 'image' && (
+          <button
+            onClick={handleRandomImage}
+            className={`p-1 rounded transition-colors ${
+              isDarkMode 
+                ? 'hover:bg-gray-700 text-gray-300' 
+                : 'hover:bg-gray-100 text-gray-600'
+            }`}
+            title="랜덤 이미지"
+          >
+            <Shuffle className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+
+      {/* 배경 타입 토글 버튼 */}
+      <div className="flex gap-1 p-1 bg-gray-100 dark:bg-gray-700 rounded-lg">
         <button
-          onClick={handleRandomImage}
-          className={`p-1 rounded transition-colors ${
-            isDarkMode 
-              ? 'hover:bg-gray-700 text-gray-300' 
-              : 'hover:bg-gray-100 text-gray-600'
+          onClick={() => onBackgroundTypeChange && onBackgroundTypeChange('image')}
+          className={`flex-1 px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+            backgroundType === 'image'
+              ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
           }`}
-          title="랜덤 이미지"
         >
-          <Shuffle className="w-4 h-4" />
+          이미지
+        </button>
+        <button
+          onClick={() => onBackgroundTypeChange && onBackgroundTypeChange('color')}
+          className={`flex-1 px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+            backgroundType === 'color'
+              ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+          }`}
+        >
+          단색/그라데이션
         </button>
       </div>
 
-      {/* 이미지 미리보기 */}
-      <div className="relative">
-        {currentImageLoading && (
-          <div className="absolute inset-0 bg-gray-200 rounded border flex items-center justify-center z-10">
-            <Loader className="w-6 h-6 animate-spin text-gray-400" />
+      {/* 이미지 관련 컨트롤들 */}
+      {backgroundType === 'image' && (
+        <>
+          {/* 이미지 미리보기 */}
+          <div className="relative">
+            {currentImageLoading && (
+              <div className="absolute inset-0 bg-gray-200 rounded border flex items-center justify-center z-10">
+                <Loader className="w-6 h-6 animate-spin text-gray-400" />
+              </div>
+            )}
+            <img
+              src={currentImageUrl}
+              alt="Background preview"
+              className="w-full h-20 object-cover rounded border"
+              onLoad={handleCurrentImageLoad}
+              onError={handleCurrentImageLoad}
+            />
+            <div className="absolute inset-0 bg-black bg-opacity-20 rounded flex items-center justify-center">
+              <span className="text-white text-xs font-medium">현재 이미지</span>
+            </div>
           </div>
-        )}
-        <img
-          src={currentImageUrl}
-          alt="Background preview"
-          className="w-full h-20 object-cover rounded border"
-          onLoad={handleCurrentImageLoad}
-          onError={handleCurrentImageLoad}
-        />
-        <div className="absolute inset-0 bg-black bg-opacity-20 rounded flex items-center justify-center">
-          <span className="text-white text-xs font-medium">현재 이미지</span>
-        </div>
-      </div>
 
-      {/* 후보 이미지들 - 고정된 시드 사용 */}
-      <div className="space-y-2">
-        <h5 className="text-xs font-medium text-gray-600">다른 이미지 후보</h5>
-        <div className="grid grid-cols-5 gap-1">
-          {candidateSeeds.map((candidateSeed, index) => {
-            const candidateUrl = generatePicsumImage(width, height, candidateSeed, blur, grayscale);
-            const isLoading = loadingImages[candidateSeed];
-            
-            return (
-              <button
-                key={candidateSeed}
-                onClick={() => onSeedChange(candidateSeed)}
-                className="relative aspect-square rounded overflow-hidden border hover:border-blue-300 transition-colors"
-                title={`후보 이미지 ${index + 1}`}
-              >
-                {isLoading && (
-                  <div className="absolute inset-0 bg-gray-200 rounded flex items-center justify-center z-10">
-                    <Loader className="w-4 h-4 animate-spin text-gray-400" />
-                  </div>
-                )}
-                <img
-                  src={candidateUrl}
-                  alt={`Candidate ${index + 1}`}
-                  className="w-full h-full object-cover"
-                  onLoad={() => handleImageLoad(candidateSeed)}
-                  onError={() => handleImageLoad(candidateSeed)}
-                />
-                <div className="absolute inset-0 bg-black bg-opacity-10 hover:bg-opacity-0 transition-opacity" />
-              </button>
-            );
-          })}
-        </div>
-      </div>
+          {/* 후보 이미지들 - 고정된 시드 사용 */}
+          <div className="space-y-2">
+            <h5 className="text-xs font-medium text-gray-600">다른 이미지 후보</h5>
+            <div className="grid grid-cols-5 gap-1">
+              {candidateSeeds.map((candidateSeed, index) => {
+                const candidateUrl = generatePicsumImage(width, height, candidateSeed, blur, grayscale);
+                const isLoading = loadingImages[candidateSeed];
+                
+                return (
+                  <button
+                    key={candidateSeed}
+                    onClick={() => onSeedChange(candidateSeed)}
+                    className="relative aspect-square rounded overflow-hidden border hover:border-blue-300 transition-colors"
+                    title={`후보 이미지 ${index + 1}`}
+                  >
+                    {isLoading && (
+                      <div className="absolute inset-0 bg-gray-200 rounded flex items-center justify-center z-10">
+                        <Loader className="w-4 h-4 animate-spin text-gray-400" />
+                      </div>
+                    )}
+                    <img
+                      src={candidateUrl}
+                      alt={`Candidate ${index + 1}`}
+                      className="w-full h-full object-cover"
+                      onLoad={() => handleImageLoad(candidateSeed)}
+                      onError={() => handleImageLoad(candidateSeed)}
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-10 hover:bg-opacity-0 transition-opacity" />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
-      {/* 컬러 배경 옵션 */}
-      <div className="space-y-2">
-        <h5 className={`text-xs font-medium ${
-          isDarkMode ? 'text-gray-200' : 'text-gray-700'
-        }`}>그라데이션/단색 배경</h5>
-        
-        {/* 그라데이션 배경 */}
-        <div className="grid grid-cols-10 gap-1">
-          {gradientBackgrounds.map((gradient, index) => (
-            <button
-              key={`gradient-${index}`}
-              onClick={() => onBackgroundChange && onBackgroundChange(gradient)}
-              className="aspect-square rounded border hover:border-blue-300 transition-colors"
-              style={{ background: gradient }}
-              title={`그라데이션 ${index + 1}`}
-            />
-          ))}
-        </div>
-        
-        {/* 단색 배경 */}
-        <div className="grid grid-cols-10 gap-1">
-          {solidBackgrounds.map((color, index) => (
-            <button
-              key={`solid-${index}`}
-              onClick={() => onBackgroundChange && onBackgroundChange(color)}
-              className="aspect-square rounded border hover:border-blue-300 transition-colors"
-              style={{ backgroundColor: color }}
-              title={`단색 ${index + 1}`}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* 컨트롤 옵션 - 2열 배치 */}
-      <div className="grid grid-cols-2 gap-3">
-        {/* 블러 조절 */}
-        <div>
-          <label className={`block text-xs font-medium mb-1 ${
-            isDarkMode ? 'text-gray-300' : 'text-gray-600'
-          }`}>
-            블러 효과: {blur === 0 ? '없음' : blur}
-          </label>
-          <input
-            type="range"
-            min="0"
-            max="3"
-            value={blur}
-            onChange={(e) => onBlurChange(parseInt(e.target.value))}
-            className={`w-full h-2 rounded-lg appearance-none cursor-pointer ${
-              isDarkMode ? 'bg-gray-600' : 'bg-gray-200'
-            }`}
-          />
-        </div>
-
-        {/* 그레이스케일 토글 */}
-        <div>
-          <label className={`block text-xs font-medium mb-1 ${
-            isDarkMode ? 'text-gray-300' : 'text-gray-600'
-          }`}>
-            그레이스케일
-          </label>
-          <div className="flex items-center">
-            <button
-              onClick={() => onGrayscaleChange(!grayscale)}
-              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                grayscale ? 'bg-blue-600' : 'bg-gray-200'
-              }`}
-            >
-              <span
-                className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
-                  grayscale ? 'translate-x-5' : 'translate-x-1'
+          {/* 이미지 전용 컨트롤 옵션 */}
+          <div className="grid grid-cols-2 gap-3">
+            {/* 블러 조절 */}
+            <div>
+              <label className={`block text-xs font-medium mb-1 ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-600'
+              }`}>
+                블러 효과: {blur === 0 ? '없음' : blur}
+              </label>
+              <input
+                type="range"
+                min="0"
+                max="3"
+                value={blur}
+                onChange={(e) => onBlurChange(parseInt(e.target.value))}
+                className={`w-full h-2 rounded-lg appearance-none cursor-pointer ${
+                  isDarkMode ? 'bg-gray-600' : 'bg-gray-200'
                 }`}
               />
-            </button>
+            </div>
+
+            {/* 그레이스케일 토글 */}
+            <div>
+              <label className={`block text-xs font-medium mb-1 ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-600'
+              }`}>
+                그레이스케일
+              </label>
+              <div className="flex items-center">
+                <button
+                  onClick={() => onGrayscaleChange(!grayscale)}
+                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                    grayscale ? 'bg-blue-600' : 'bg-gray-200'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                      grayscale ? 'translate-x-5' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* 시드 정보 (개발용) */}
+          <div className={`text-xs truncate ${
+            isDarkMode ? 'text-gray-500' : 'text-gray-400'
+          }`}>
+            시드: {currentSeed}
+          </div>
+        </>
+      )}
+
+      {/* 컬러 배경 옵션 */}
+      {backgroundType === 'color' && (
+        <div className="space-y-2">
+          <h5 className={`text-xs font-medium ${
+            isDarkMode ? 'text-gray-200' : 'text-gray-700'
+          }`}>그라데이션/단색 배경</h5>
+          
+          {/* 그라데이션 배경 */}
+          <div className="grid grid-cols-10 gap-1">
+            {gradientBackgrounds.map((gradient, index) => (
+              <button
+                key={`gradient-${index}`}
+                onClick={() => onBackgroundChange && onBackgroundChange(gradient)}
+                className="aspect-square rounded border hover:border-blue-300 transition-colors"
+                style={{ background: gradient }}
+                title={`그라데이션 ${index + 1}`}
+              />
+            ))}
+          </div>
+          
+          {/* 단색 배경 */}
+          <div className="grid grid-cols-10 gap-1">
+            {solidBackgrounds.map((color, index) => (
+              <button
+                key={`solid-${index}`}
+                onClick={() => onBackgroundChange && onBackgroundChange(color)}
+                className="aspect-square rounded border hover:border-blue-300 transition-colors"
+                style={{ backgroundColor: color }}
+                title={`단색 ${index + 1}`}
+              />
+            ))}
           </div>
         </div>
-      </div>
+      )}
 
       {/* 패턴/필터 선택 */}
       <div>
@@ -289,13 +333,6 @@ export const BackgroundController: React.FC<BackgroundControllerProps> = ({
             </option>
           ))}
         </select>
-      </div>
-
-      {/* 시드 정보 (개발용) */}
-      <div className={`text-xs truncate ${
-        isDarkMode ? 'text-gray-500' : 'text-gray-400'
-      }`}>
-        시드: {currentSeed}
       </div>
     </div>
   );

@@ -8,12 +8,14 @@ interface ApiSettingsProps {
   apiSettings: ApiSettingsType;
   language: 'ko' | 'en';
   onApiKeyChange: (apiKey: string) => void;
+  isDarkMode?: boolean;
 }
 
 export const ApiSettings: React.FC<ApiSettingsProps> = ({
   apiSettings,
   language,
   onApiKeyChange,
+  isDarkMode = false,
 }) => {
   const [isExpanded, setIsExpanded] = useState(!apiSettings.isConfigured);
   const [tempApiKey, setTempApiKey] = useState(apiSettings.geminiApiKey);
@@ -49,7 +51,11 @@ export const ApiSettings: React.FC<ApiSettingsProps> = ({
     <div className="space-y-3">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="flex items-center justify-between w-full text-left text-sm font-medium text-gray-700 hover:text-gray-900"
+        className={`flex items-center justify-between w-full text-left text-sm font-medium ${
+          isDarkMode 
+            ? 'text-gray-300 hover:text-white' 
+            : 'text-gray-700 hover:text-gray-900'
+        }`}
       >
         <div className="flex items-center gap-2">
           <Settings className="w-4 h-4" />
@@ -64,9 +70,15 @@ export const ApiSettings: React.FC<ApiSettingsProps> = ({
       </button>
 
       {isExpanded && (
-        <div className="space-y-3 p-3 bg-gray-50 rounded-lg border">
+        <div className={`space-y-3 p-3 rounded-lg border ${
+          isDarkMode 
+            ? 'bg-gray-700 border-gray-600' 
+            : 'bg-gray-50 border-gray-200'
+        }`}>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className={`block text-sm font-medium mb-2 ${
+              isDarkMode ? 'text-gray-300' : 'text-gray-700'
+            }`}>
               <Key className="w-4 h-4 inline mr-1" />
               {t.geminiApiKey}
             </label>
@@ -75,7 +87,11 @@ export const ApiSettings: React.FC<ApiSettingsProps> = ({
               value={tempApiKey}
               onChange={(e) => setTempApiKey(e.target.value)}
               placeholder={t.geminiApiKeyPlaceholder}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${
+                isDarkMode 
+                  ? 'bg-gray-600 border-gray-500 text-white placeholder-gray-400' 
+                  : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+              }`}
             />
           </div>
           
@@ -101,13 +117,17 @@ export const ApiSettings: React.FC<ApiSettingsProps> = ({
           
           {apiSettings.isConfigured && (
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-xs text-green-600 text-center justify-center">
+              <div className={`flex items-center gap-2 text-xs text-center justify-center ${
+                isDarkMode ? 'text-green-400' : 'text-green-600'
+              }`}>
                 <Shield className="w-3 h-3" />
                 ✓ 256비트 + Base64 이중 암호화로 안전하게 저장됨
               </div>
               
               {savedTime && (
-                <div className="flex items-center gap-2 text-xs text-gray-500 text-center justify-center">
+                <div className={`flex items-center gap-2 text-xs text-center justify-center ${
+                  isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                }`}>
                   <Clock className="w-3 h-3" />
                   저장 시간: {formatSavedTime(savedTime)}
                 </div>

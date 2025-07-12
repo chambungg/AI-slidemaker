@@ -108,7 +108,7 @@ export const SlideBorderStyleSelector: React.FC<SlideBorderStyleSelectorProps> =
             className={`
               relative p-3 rounded-lg border-2 transition-all text-left
               ${selectedStyle.id === style.id 
-                ? 'border-blue-500 bg-blue-50 shadow-md' 
+                ? `border-blue-500 ${isDarkMode ? 'bg-blue-900/30' : 'bg-blue-50'} shadow-md` 
                 : isDarkMode
                   ? 'border-gray-600 hover:border-gray-500 hover:bg-gray-600'
                   : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
@@ -123,11 +123,15 @@ export const SlideBorderStyleSelector: React.FC<SlideBorderStyleSelectorProps> =
               {/* 스타일 미리보기 */}
               <div className="flex items-center justify-center">
                 <div 
-                  className="w-12 h-8 bg-gradient-to-r from-blue-100 to-purple-100"
+                  className={`w-12 h-8 ${
+                    isDarkMode 
+                      ? 'bg-gradient-to-r from-gray-600 to-gray-500' 
+                      : 'bg-gradient-to-r from-blue-100 to-purple-100'
+                  }`}
                   style={{
                     borderWidth: style.borderWidth,
                     borderStyle: style.borderStyle,
-                    borderColor: '#6366f1',
+                    borderColor: isDarkMode ? '#8B5CF6' : '#6366f1',
                     borderRadius: style.borderRadius,
                     boxShadow: style.boxShadow,
                   }}

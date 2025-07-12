@@ -149,7 +149,11 @@ function App() {
             slide.template || themeTemplate.defaultLayout,
             backgroundImage,
             slide.backgroundBlur || 2,
-            slide.themeOverlay || 0.3
+            slide.themeOverlay || 0.3,
+            undefined, // backgroundColor
+            undefined, // backgroundPattern
+            slide.elements, // elements
+            'ppt' // 기본값
           ),
         };
       });
@@ -299,7 +303,11 @@ function App() {
         'title-center',
         backgroundImage,
         backgroundOptions.blur,
-        0.3
+        0.3,
+        undefined, // backgroundColor
+        undefined, // backgroundPattern
+        [], // elements
+        'ppt' // 기본값
       ),
       order: afterIndex !== undefined ? afterIndex + 1 : state.slides.length,
       template: 'title-center',
@@ -391,6 +399,7 @@ function App() {
                       apiSettings={apiSettings}
                       language={state.language}
                       onApiKeyChange={handleApiKeyChange}
+                      isDarkMode={isDarkMode}
                     />
                   </div>
                 </div>
@@ -439,10 +448,10 @@ function App() {
           minWidth={300} 
           maxWidth={420} 
           position="left"
-          className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-r p-4 overflow-y-auto transition-colors`}
+          className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-r p-4 overflow-y-auto overflow-x-hidden transition-colors`}
         >
-          <div className="space-y-4">
-            <div>
+          <div className="space-y-4 max-w-full">
+            <div className="w-full max-w-full overflow-hidden">
               <div className="flex items-center justify-between mb-2">
                 <label className={`block text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
                   {t.content}
@@ -473,54 +482,68 @@ function App() {
               />
             </div>
 
-            <SlideTypeSelector
-              selectedType={slideType}
-              language={state.language}
-              onTypeChange={handleSlideTypeChange}
-              isDarkMode={isDarkMode}
-            />
+            <div className="w-full max-w-full overflow-hidden">
+              <SlideTypeSelector
+                selectedType={slideType}
+                language={state.language}
+                onTypeChange={handleSlideTypeChange}
+                isDarkMode={isDarkMode}
+              />
+            </div>
 
-            <SlideCountSelector
-              count={slideCount}
-              onCountChange={setSlideCount}
-              isDarkMode={isDarkMode}
-              language={state.language}
-            />
+            <div className="w-full max-w-full overflow-hidden">
+              <SlideCountSelector
+                count={slideCount}
+                onCountChange={setSlideCount}
+                isDarkMode={isDarkMode}
+                language={state.language}
+              />
+            </div>
 
-            <ThemeSelector
-              selectedTheme={state.theme}
-              onThemeChange={(theme) => setState(prev => ({ ...prev, theme }))}
-              language={state.language}
-              isDarkMode={isDarkMode}
-            />
+            <div className="w-full max-w-full overflow-hidden">
+              <ThemeSelector
+                selectedTheme={state.theme}
+                onThemeChange={(theme) => setState(prev => ({ ...prev, theme }))}
+                language={state.language}
+                isDarkMode={isDarkMode}
+              />
+            </div>
 
-            <ThemeFontSelector
-              currentFont={themeFont}
-              onFontChange={setThemeFont}
-              isDarkMode={isDarkMode}
-              language={state.language}
-            />
+            <div className="w-full max-w-full overflow-hidden">
+              <ThemeFontSelector
+                currentFont={themeFont}
+                onFontChange={setThemeFont}
+                isDarkMode={isDarkMode}
+                language={state.language}
+              />
+            </div>
 
-            <ThemeTemplateSelector
-              currentTemplate={themeTemplate}
-              onTemplateChange={setThemeTemplate}
-              isDarkMode={isDarkMode}
-              language={state.language}
-            />
+            <div className="w-full max-w-full overflow-hidden">
+              <ThemeTemplateSelector
+                currentTemplate={themeTemplate}
+                onTemplateChange={setThemeTemplate}
+                isDarkMode={isDarkMode}
+                language={state.language}
+              />
+            </div>
 
-            <SlideBorderStyleSelector
-              selectedStyle={slideBorderStyle}
-              onStyleChange={setSlideBorderStyle}
-              isDarkMode={isDarkMode}
-              language={state.language}
-            />
+            <div className="w-full max-w-full overflow-hidden">
+              <SlideBorderStyleSelector
+                selectedStyle={slideBorderStyle}
+                onStyleChange={setSlideBorderStyle}
+                isDarkMode={isDarkMode}
+                language={state.language}
+              />
+            </div>
 
-            <AspectRatioSelector
-              selectedRatio={state.aspectRatio}
-              onRatioChange={(aspectRatio) => setState(prev => ({ ...prev, aspectRatio }))}
-              language={state.language}
-              isDarkMode={isDarkMode}
-            />
+            <div className="w-full max-w-full overflow-hidden">
+              <AspectRatioSelector
+                selectedRatio={state.aspectRatio}
+                onRatioChange={(aspectRatio) => setState(prev => ({ ...prev, aspectRatio }))}
+                language={state.language}
+                isDarkMode={isDarkMode}
+              />
+            </div>
 
             <button
               onClick={handleGenerate}

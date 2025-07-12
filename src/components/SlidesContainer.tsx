@@ -146,15 +146,18 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
     if (!tempSlide) {return;}
 
     // tempSlide가 변경될 때마다 즉시 HTML 업데이트
-    const finalBackgroundImage = tempSlide.backgroundSeed
-      ? generatePicsumImage(
-          aspectRatio.width,
-          aspectRatio.height,
-          tempSlide.backgroundSeed,
-          tempSlide.backgroundBlur || 2,
-          tempSlide.backgroundGrayscale || false
-        )
-      : tempSlide.backgroundImage;
+    // 배경 타입에 따라 표시할 배경 결정
+    const finalBackgroundImage = (tempSlide.backgroundType === 'image' || !tempSlide.backgroundType)
+      ? (tempSlide.backgroundSeed
+          ? generatePicsumImage(
+              aspectRatio.width,
+              aspectRatio.height,
+              tempSlide.backgroundSeed,
+              tempSlide.backgroundBlur || 2,
+              tempSlide.backgroundGrayscale || false
+            )
+          : tempSlide.backgroundImage)
+      : undefined;
 
     const updatedHtmlContent = generateSlideHTML(
       tempSlide.title,
@@ -168,9 +171,10 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
       finalBackgroundImage,
       tempSlide.backgroundBlur || 2,
       tempSlide.themeOverlay || 0.3,
-      finalBackgroundImage ? undefined : tempSlide.backgroundColor,
+      tempSlide.backgroundType === 'color' ? tempSlide.backgroundColor : undefined,
       tempSlide.backgroundPattern,
-      tempSlide.elements
+      tempSlide.elements,
+      'ppt' // 기본값
     );
 
     // tempSlide의 htmlContent를 즉시 업데이트
@@ -222,7 +226,8 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
       tempSlide.themeOverlay || 0.3,
       tempSlide.backgroundImage ? undefined : tempSlide.backgroundColor,
       tempSlide.backgroundPattern,
-      updatedElements
+      updatedElements,
+      'ppt' // 기본값
     );
 
     setTempSlide(prev => prev ? {
@@ -232,6 +237,45 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
     } : null);
     setHasUnsavedChanges(true);
   }, [tempSlide, theme, aspectRatio, themeFont, slideBorderStyle]);
+
+  // 요소 삭제 함수
+  const deleteElement = useCallback((elementId: string) => {
+    if (!tempSlide) return;
+
+    const updatedElements = tempSlide.elements?.filter(el => el.id !== elementId) || [];
+
+    // HTML 콘텐츠 재생성
+    const updatedHtmlContent = generateSlideHTML(
+      tempSlide.title,
+      tempSlide.content,
+      theme,
+      aspectRatio,
+      tempSlide.order,
+      themeFont,
+      slideBorderStyle,
+      tempSlide.slideLayout || tempSlide.template || 'title-top-content-bottom',
+      tempSlide.backgroundImage,
+      tempSlide.backgroundBlur || 2,
+      tempSlide.themeOverlay || 0.3,
+      tempSlide.backgroundImage ? undefined : tempSlide.backgroundColor,
+      tempSlide.backgroundPattern,
+      updatedElements,
+      'ppt' // 기본값
+    );
+
+    setTempSlide(prev => prev ? {
+      ...prev,
+      elements: updatedElements,
+      htmlContent: updatedHtmlContent,
+    } : null);
+    
+    // 삭제된 요소가 선택되어 있었다면 선택 해제
+    if (selectedElementId === elementId) {
+      setSelectedElementId(undefined);
+    }
+    
+    setHasUnsavedChanges(true);
+  }, [tempSlide, theme, aspectRatio, themeFont, slideBorderStyle, selectedElementId]);
 
   const addNewElement = (type: 'text' | 'image' = 'text') => {
     if (!tempSlide) {return;}
@@ -261,18 +305,6 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
     } : null);
     setHasUnsavedChanges(true);
     setSelectedElementId(newElement.id);
-  };
-
-  const deleteElement = (elementId: string) => {
-    if (!tempSlide) {return;}
-
-    const updatedElements = tempSlide.elements?.filter(el => el.id !== elementId) || [];
-    setTempSlide(prev => prev ? {
-      ...prev,
-      elements: updatedElements,
-    } : null);
-    setHasUnsavedChanges(true);
-    setSelectedElementId(undefined);
   };
 
   const handleMouseDown = (e: React.MouseEvent, elementId: string, action: 'move' | 'resize' = 'move') => {
@@ -433,6 +465,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
               backgroundBlur: 2, // 자동으로 블러 효과 적용
               backgroundSeed: undefined, // picsum 시드 제거
               backgroundGrayscale: false, // 그레이스케일 비활성화
+              backgroundType: 'image' // 이미지 타입으로 설정
             };
 
             setTempSlide(updatedSlide);
@@ -498,15 +531,18 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
     if (!tempSlide) {return;}
 
     // 최종 배경 이미지 생성 (블러와 그레이스케일 효과 포함)
-    const finalBackgroundImage = tempSlide.backgroundSeed
-      ? generatePicsumImage(
-          aspectRatio.width,
-          aspectRatio.height,
-          tempSlide.backgroundSeed,
-          tempSlide.backgroundBlur || 2,
-          tempSlide.backgroundGrayscale || false
-        )
-      : tempSlide.backgroundImage;
+    // 배경 타입에 따라 표시할 배경 결정
+    const finalBackgroundImage = (tempSlide.backgroundType === 'image' || !tempSlide.backgroundType)
+      ? (tempSlide.backgroundSeed
+          ? generatePicsumImage(
+              aspectRatio.width,
+              aspectRatio.height,
+              tempSlide.backgroundSeed,
+              tempSlide.backgroundBlur || 2,
+              tempSlide.backgroundGrayscale || false
+            )
+          : tempSlide.backgroundImage)
+      : undefined;
 
     const updatedSlide = {
       ...tempSlide,
@@ -523,9 +559,10 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
         finalBackgroundImage,
         tempSlide.backgroundBlur || 2,
         tempSlide.themeOverlay || 0.3,
-        finalBackgroundImage ? undefined : tempSlide.backgroundColor,
+        tempSlide.backgroundType === 'color' ? tempSlide.backgroundColor : undefined,
         tempSlide.backgroundPattern,
-        tempSlide.elements
+        tempSlide.elements,
+        'ppt' // 기본값
       ),
       // 추가된 요소들도 포함
       elements: tempSlide.elements || [],
@@ -555,6 +592,8 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
       ...tempSlide,
       backgroundSeed: seed,
       backgroundImage: newBackgroundImage,
+      // 이미지가 선택되면 이미지 타입으로 설정
+      backgroundType: 'image'
     };
 
     setTempSlide(updatedSlide);
@@ -607,7 +646,8 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
         tempSlide.themeOverlay || 0.3,
         tempSlide.backgroundImage ? undefined : tempSlide.backgroundColor,
         tempSlide.backgroundPattern,
-        tempSlide.elements
+        tempSlide.elements,
+        'ppt' // 기본값
       ),
     };
 
@@ -872,15 +912,18 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                             onClick={() => {
                               // 편집 완료 전에 마지막 변경사항 강제 저장
                               if (tempSlide && hasUnsavedChanges) {
-                                const finalBackgroundImage = tempSlide.backgroundSeed
-                                  ? generatePicsumImage(
-                                      aspectRatio.width,
-                                      aspectRatio.height,
-                                      tempSlide.backgroundSeed,
-                                      tempSlide.backgroundBlur || 2,
-                                      tempSlide.backgroundGrayscale || false
-                                    )
-                                  : tempSlide.backgroundImage;
+                                // 배경 타입에 따라 표시할 배경 결정
+                                const finalBackgroundImage = (tempSlide.backgroundType === 'image' || !tempSlide.backgroundType)
+                                  ? (tempSlide.backgroundSeed
+                                      ? generatePicsumImage(
+                                          aspectRatio.width,
+                                          aspectRatio.height,
+                                          tempSlide.backgroundSeed,
+                                          tempSlide.backgroundBlur || 2,
+                                          tempSlide.backgroundGrayscale || false
+                                        )
+                                      : tempSlide.backgroundImage)
+                                  : undefined;
 
                                 const updatedSlide = {
                                   ...tempSlide,
@@ -897,9 +940,10 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                     finalBackgroundImage,
                                     tempSlide.backgroundBlur || 2,
                                     tempSlide.themeOverlay || 0.3,
-                                    finalBackgroundImage ? undefined : tempSlide.backgroundColor,
+                                    tempSlide.backgroundType === 'color' ? tempSlide.backgroundColor : undefined,
                                     tempSlide.backgroundPattern,
-                                    tempSlide.elements
+                                    tempSlide.elements,
+                                    'ppt' // 기본값
                                   ),
                                   elements: tempSlide.elements || [],
                                 };
@@ -1331,8 +1375,8 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                             isDarkMode={isDarkMode}
                           />
 
-                          {/* 요소 배치 버튼 - 조건부 렌더링 */}
-                          {selectedElementId && selectedElementId !== 'slide-title' && selectedElementId !== 'slide-content' && (
+                          {/* 요소 배치 버튼 */}
+                          {selectedElementId && (
                             <div className={`${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-300'} rounded-lg border p-3 space-y-3`}>
                               <h4 className={`text-sm font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>요소 배치</h4>
                               <div className="flex gap-2">
@@ -1368,16 +1412,29 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                             grayscale={tempSlide.backgroundGrayscale || false}
                             width={aspectRatio.width}
                             height={aspectRatio.height}
+                            backgroundType={tempSlide.backgroundType || 'image'}
                             onSeedChange={handleBackgroundSeedChange}
                             onBlurChange={handleBackgroundBlurChange}
                             onGrayscaleChange={handleBackgroundGrayscaleChange}
+                            onBackgroundTypeChange={(type) => {
+                              if (!tempSlide) return;
+                              const updatedSlide = {
+                                ...tempSlide,
+                                backgroundType: type
+                              };
+                              setTempSlide(updatedSlide);
+                              setHasUnsavedChanges(true);
+                            }}
                             onBackgroundChange={(background) => {
                               if (!tempSlide) return;
                               const updatedSlide = {
                                 ...tempSlide,
                                 backgroundColor: background,
-                                backgroundImage: undefined,
-                                backgroundSeed: undefined
+                                // 배경 이미지는 보존하되 일시적으로 숨김
+                                backgroundImage: tempSlide.backgroundImage,
+                                backgroundSeed: tempSlide.backgroundSeed,
+                                // 배경 타입 표시를 위한 플래그 추가
+                                backgroundType: 'color'
                               };
                               setTempSlide(updatedSlide);
                               setHasUnsavedChanges(true);
@@ -1431,12 +1488,22 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                             <h4 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
                               {selectedElement.type === 'text' ? '📝 텍스트 속성' : '🖼️ 이미지 속성'}
                             </h4>
-                            <button
-                              onClick={() => setSelectedElementId(undefined)}
-                              className={`text-sm ${isDarkMode ? 'text-gray-400 hover:text-gray-200' : 'text-gray-500 hover:text-gray-700'}`}
-                            >
-                              ✕
-                            </button>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => deleteElement(selectedElement.id)}
+                                className={`text-sm px-2 py-1 rounded ${isDarkMode ? 'text-red-400 hover:text-red-300 hover:bg-red-900/20' : 'text-red-600 hover:text-red-700 hover:bg-red-50'} transition-colors`}
+                                title="요소 삭제"
+                              >
+                                🗑️
+                              </button>
+                              <button
+                                onClick={() => setSelectedElementId(undefined)}
+                                className={`text-sm ${isDarkMode ? 'text-gray-400 hover:text-gray-200' : 'text-gray-500 hover:text-gray-700'}`}
+                                title="속성 패널 닫기"
+                              >
+                                ✕
+                              </button>
+                            </div>
                           </div>
 
                           {/* 우선순위 조절 */}
