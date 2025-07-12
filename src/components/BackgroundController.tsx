@@ -13,6 +13,7 @@ interface BackgroundControllerProps {
   onGrayscaleChange: (grayscale: boolean) => void;
   onBackgroundChange?: (background: string) => void;
   onPatternChange?: (pattern: string) => void;
+  isDarkMode?: boolean;
 }
 
 export const BackgroundController: React.FC<BackgroundControllerProps> = ({

@@ -818,10 +818,10 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                         </div>
                       </div>
 
-                      {/* 슬라이드 편집 영역 - 상하 분할 */}
-                      <div className="space-y-4">
-                        {/* 직접 편집 영역 - 상단 */}
-                        <div>
+                      {/* 슬라이드 편집 영역 - 좌우 분할 */}
+                      <div className="flex h-full gap-4">
+                        {/* 좌측 슬라이드 편집 영역 - 70% */}
+                        <div className="flex-[7]">
                           <div
                             ref={containerRef}
                             data-slide-id={slide.id}
@@ -1218,45 +1218,44 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                           </div>
                         </div>
 
-                        {/* 오른쪽 컨트롤 패널 - 우측 1/3 */}
-                        <div className="space-y-4">
+                        {/* 우측 컨트롤 패널 - 30% */}
+                        <div className="flex-[3] space-y-4">
                           {/* 슬라이드 템플릿 선택 */}
                           <SlideTemplateSelector
                             currentTemplate={tempSlide.slideLayout || 'title-top-content-bottom'}
                             onTemplateChange={handleTemplateChange}
+                            isDarkMode={isDarkMode}
                           />
 
-                          {/* 요소 배치 버튼 */}
-                          <div className="bg-white rounded-lg border p-3 space-y-3">
-                            <h4 className="text-sm font-semibold text-gray-800">요소 배치</h4>
-                            {selectedElementId && selectedElementId !== 'slide-title' && selectedElementId !== 'slide-content' ? (
+                          {/* 요소 배치 버튼 - 조건부 렌더링 */}
+                          {selectedElementId && selectedElementId !== 'slide-title' && selectedElementId !== 'slide-content' && (
+                            <div className={`${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-300'} rounded-lg border p-3 space-y-3`}>
+                              <h4 className={`text-sm font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>요소 배치</h4>
                               <div className="flex gap-2">
                                 <button
                                   onClick={() => applyElementAlignment('left')}
-                                  className="flex-1 px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded"
+                                  className={`flex-1 px-2 py-1 text-xs ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'} rounded`}
                                   title="좌측 정렬"
                                 >
                                   <AlignLeft className="w-3 h-3 mx-auto" />
                                 </button>
                                 <button
                                   onClick={() => applyElementAlignment('center')}
-                                  className="flex-1 px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded"
+                                  className={`flex-1 px-2 py-1 text-xs ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'} rounded`}
                                   title="가운데 정렬"
                                 >
                                   <AlignCenter className="w-3 h-3 mx-auto" />
                                 </button>
                                 <button
                                   onClick={() => applyElementAlignment('right')}
-                                  className="flex-1 px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded"
+                                  className={`flex-1 px-2 py-1 text-xs ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'} rounded`}
                                   title="우측 정렬"
                                 >
                                   <AlignRight className="w-3 h-3 mx-auto" />
                                 </button>
                               </div>
-                            ) : (
-                              <p className="text-xs text-gray-500 text-center">요소를 선택하세요</p>
-                            )}
-                          </div>
+                            </div>
+                          )}
 
                           {/* 배경 이미지 컨트롤 */}
                           <BackgroundController
@@ -1276,11 +1275,12 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                               // 패턴/필터 적용 로직
                               console.log('Pattern/filter selected:', pattern);
                             }}
+                            isDarkMode={isDarkMode}
                           />
 
                           {/* 요소 추가 버튼 - 한 줄 배치 */}
-                          <div className="bg-white rounded-lg border p-3 space-y-3">
-                            <h4 className="text-sm font-semibold text-gray-800">요소 추가</h4>
+                          <div className={`${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-300'} rounded-lg border p-3 space-y-3`}>
+                            <h4 className={`text-sm font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>요소 추가</h4>
                             <div className="grid grid-cols-3 gap-2">
                               <button
                                 onClick={() => addNewElement('text')}
@@ -1305,7 +1305,6 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                               </button>
                             </div>
                           </div>
-
                         </div>
                       </div>
 
@@ -1330,7 +1329,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                             <div className="flex items-center gap-2">
                               <button
                                 onClick={() => updateElement(selectedElement.id, { zIndex: Math.max(1, (selectedElement.zIndex || 1) - 1) })}
-                                className="px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded"
+                                className={`px-2 py-1 text-xs rounded ${isDarkMode ? 'bg-gray-600 hover:bg-gray-500 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}
                                 title="뒤로 보내기"
                               >
                                 ↓
@@ -1340,7 +1339,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                               </span>
                               <button
                                 onClick={() => updateElement(selectedElement.id, { zIndex: (selectedElement.zIndex || 1) + 1 })}
-                                className="px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded"
+                                className={`px-2 py-1 text-xs rounded ${isDarkMode ? 'bg-gray-600 hover:bg-gray-500 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}
                                 title="앞으로 가져오기"
                               >
                                 ↑
@@ -1353,7 +1352,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                               <div className="grid grid-cols-3 gap-3">
                                 {/* 글자 크기 */}
                                 <div>
-                                  <label className="block text-xs font-medium text-gray-600 mb-1">크기</label>
+                                  <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>크기</label>
                                   <div className="flex items-center gap-1">
                                     <input
                                       type="range"
@@ -1363,17 +1362,17 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                       onChange={(e) => updateElement(selectedElement.id, { fontSize: parseInt(e.target.value) })}
                                       className="flex-1"
                                     />
-                                    <span className="text-xs text-gray-500 w-8">{selectedElement.fontSize}</span>
+                                    <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} w-8`}>{selectedElement.fontSize}</span>
                                   </div>
                                 </div>
 
                                 {/* 글꼴 */}
                                 <div>
-                                  <label className="block text-xs font-medium text-gray-600 mb-1">글꼴</label>
+                                  <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>글꼴</label>
                                   <select
                                     value={selectedElement.fontFamily}
                                     onChange={(e) => updateElement(selectedElement.id, { fontFamily: e.target.value })}
-                                    className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
+                                    className={`w-full px-1 py-1 border rounded text-xs ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
                                   >
                                     {FONT_FAMILIES.map((font) => (
                                       <option key={font} value={font}>
@@ -1385,12 +1384,12 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
 
                                 {/* 글자 색상 */}
                                 <div>
-                                  <label className="block text-xs font-medium text-gray-600 mb-1">색상</label>
+                                  <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>색상</label>
                                   <input
                                     type="color"
                                     value={selectedElement.color}
                                     onChange={(e) => updateElement(selectedElement.id, { color: e.target.value })}
-                                    className="w-full h-6 border border-gray-300 rounded"
+                                    className={`w-full h-6 border rounded ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
                                   />
                                 </div>
                               </div>
@@ -1398,11 +1397,11 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                               {/* 텍스트 정렬 및 굵기 */}
                               <div className="grid grid-cols-2 gap-2">
                                 <div>
-                                  <label className="block text-xs font-medium text-gray-600 mb-1">굵기</label>
+                                  <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>굵기</label>
                                   <select
                                     value={selectedElement.fontWeight}
                                     onChange={(e) => updateElement(selectedElement.id, { fontWeight: e.target.value })}
-                                    className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
+                                    className={`w-full px-1 py-1 border rounded text-xs ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
                                   >
                                     <option value="normal">보통</option>
                                     <option value="bold">굵게</option>
@@ -1411,7 +1410,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                 </div>
 
                                 <div>
-                                  <label className="block text-xs font-medium text-gray-600 mb-1">정렬</label>
+                                  <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>정렬</label>
                                   <div className="flex gap-1">
                                     {(['left', 'center', 'right'] as const).map((align) => (
                                       <button
@@ -1420,7 +1419,9 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                         className={`p-1 rounded text-xs ${
                                           selectedElement.textAlign === align
                                             ? 'bg-blue-500 text-white'
-                                            : 'bg-gray-200 hover:bg-gray-300'
+                                            : isDarkMode
+                                            ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                                            : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
                                         }`}
                                       >
                                         {align === 'left' && <AlignLeft className="w-3 h-3" />}
@@ -1435,39 +1436,39 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                               {/* 위치 및 크기 */}
                               <div className="grid grid-cols-4 gap-1">
                                 <div>
-                                  <label className="block text-xs font-medium text-gray-600 mb-1">X</label>
+                                  <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>X</label>
                                   <input
                                     type="number"
                                     value={Math.round(selectedElement.x)}
                                     onChange={(e) => updateElement(selectedElement.id, { x: parseInt(e.target.value) || 0 })}
-                                    className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
+                                    className={`w-full px-1 py-1 border rounded text-xs ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
                                   />
                                 </div>
                                 <div>
-                                  <label className="block text-xs font-medium text-gray-600 mb-1">Y</label>
+                                  <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>Y</label>
                                   <input
                                     type="number"
                                     value={Math.round(selectedElement.y)}
                                     onChange={(e) => updateElement(selectedElement.id, { y: parseInt(e.target.value) || 0 })}
-                                    className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
+                                    className={`w-full px-1 py-1 border rounded text-xs ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
                                   />
                                 </div>
                                 <div>
-                                  <label className="block text-xs font-medium text-gray-600 mb-1">너비</label>
+                                  <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>너비</label>
                                   <input
                                     type="number"
                                     value={Math.round(selectedElement.width)}
                                     onChange={(e) => updateElement(selectedElement.id, { width: parseInt(e.target.value) || 50 })}
-                                    className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
+                                    className={`w-full px-1 py-1 border rounded text-xs ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
                                   />
                                 </div>
                                 <div>
-                                  <label className="block text-xs font-medium text-gray-600 mb-1">높이</label>
+                                  <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>높이</label>
                                   <input
                                     type="number"
                                     value={Math.round(selectedElement.height)}
                                     onChange={(e) => updateElement(selectedElement.id, { height: parseInt(e.target.value) || 30 })}
-                                    className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
+                                    className={`w-full px-1 py-1 border rounded text-xs ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
                                   />
                                 </div>
                               </div>
@@ -1487,39 +1488,39 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                               {/* 위치 및 크기 */}
                               <div className="grid grid-cols-4 gap-1">
                                 <div>
-                                  <label className="block text-xs font-medium text-gray-600 mb-1">X</label>
+                                  <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>X</label>
                                   <input
                                     type="number"
                                     value={Math.round(selectedElement.x)}
                                     onChange={(e) => updateElement(selectedElement.id, { x: parseInt(e.target.value) || 0 })}
-                                    className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
+                                    className={`w-full px-1 py-1 border rounded text-xs ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
                                   />
                                 </div>
                                 <div>
-                                  <label className="block text-xs font-medium text-gray-600 mb-1">Y</label>
+                                  <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>Y</label>
                                   <input
                                     type="number"
                                     value={Math.round(selectedElement.y)}
                                     onChange={(e) => updateElement(selectedElement.id, { y: parseInt(e.target.value) || 0 })}
-                                    className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
+                                    className={`w-full px-1 py-1 border rounded text-xs ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
                                   />
                                 </div>
                                 <div>
-                                  <label className="block text-xs font-medium text-gray-600 mb-1">너비</label>
+                                  <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>너비</label>
                                   <input
                                     type="number"
                                     value={Math.round(selectedElement.width)}
                                     onChange={(e) => updateElement(selectedElement.id, { width: parseInt(e.target.value) || 50 })}
-                                    className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
+                                    className={`w-full px-1 py-1 border rounded text-xs ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
                                   />
                                 </div>
                                 <div>
-                                  <label className="block text-xs font-medium text-gray-600 mb-1">높이</label>
+                                  <label className={`block text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>높이</label>
                                   <input
                                     type="number"
                                     value={Math.round(selectedElement.height)}
                                     onChange={(e) => updateElement(selectedElement.id, { height: parseInt(e.target.value) || 30 })}
-                                    className="w-full px-1 py-1 border border-gray-300 rounded text-xs"
+                                    className={`w-full px-1 py-1 border rounded text-xs ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
                                   />
                                 </div>
                               </div>

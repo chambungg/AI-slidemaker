@@ -20,6 +20,7 @@ interface SlideTemplate {
 interface SlideTemplateSelectorProps {
   currentTemplate: SlideLayoutType;
   onTemplateChange: (template: SlideLayoutType) => void;
+  isDarkMode?: boolean;
 }
 
 const SLIDE_TEMPLATES: SlideTemplate[] = [

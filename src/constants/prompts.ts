@@ -14,17 +14,17 @@ export const getSlideTypeInstruction = (slideType: 'card-news' | 'ppt' | 'image-
   switch (slideType) {
     case 'card-news':
       return language === 'ko' 
-        ? '카드뉴스 형태로 만들어주세요. 각 슬라이드는 매우 짧고 요약된 문구 위주로, 같은 글씨 크기로 작성해주세요. 한 슬라이드당 최대 20단어 이내로 제한하세요.'
-        : 'Create in card news format. Each slide should have very short and summarized phrases with consistent font size. Limit to maximum 20 words per slide.';
+        ? '카드뉴스 형태로 만들어주세요. 각 슬라이드는 간결하고 임팩트 있는 메시지로 구성하세요. 내용은 최소 20자에서 최대 40자로 작성하고, 핵심 메시지만 포함하여 한눈에 이해할 수 있게 해주세요.'
+        : 'Create in card news format. Each slide should have concise and impactful messages. Content should be minimum 20 characters to maximum 40 characters, including only key messages for instant understanding.';
     case 'image-card':
       return language === 'ko'
-        ? '이미지카드 형태로 만들어주세요. 각 슬라이드에는 관련 이미지가 배치되고, 그 이미지에 알맞는 간결한 메시지를 표시하세요. 한 슬라이드당 최대 30단어 이내로 제한하세요.'
-        : 'Create in image card format. Each slide should have a relevant image with a concise message that fits the image. Limit to maximum 30 words per slide.';
+        ? '이미지카드 형태로 만들어주세요. 각 슬라이드에는 관련 이미지가 배치되고, 그 이미지에 알맞는 매우 간결한 메시지를 표시하세요. 내용은 최소 10자에서 최대 20자로 작성하여 이미지와 함께 강력한 시각적 메시지를 전달하세요.'
+        : 'Create in image card format. Each slide should have a relevant image with very concise messages. Content should be minimum 10 characters to maximum 20 characters to deliver powerful visual messages together with images.';
     case 'ppt':
     default:
       return language === 'ko'
-        ? '일반적인 PPT 프레젠테이션 형태로 만들어주세요. 각 슬라이드는 매우 상세하고 풍부한 내용으로 구성하세요. 제목은 최대 15자 이하로 간결하게, 내용은 5-10개의 풍부한 불릿 포인트로 구성하고 각 불릿 포인트는 3-4줄의 자세한 설명을 포함해야 합니다. 예시, 데이터, 구체적인 설명, 실용적인 정보를 포함하여 전문적이고 정보가 매우 풍부한 내용으로 작성해주세요. 내용의 분량은 제목보다 훨씬 많아야 합니다.'
-        : 'Create in standard PPT presentation format with very detailed and rich content. Keep titles under 15 characters and make content with 5-10 rich bullet points. Each bullet point should contain 3-4 lines of detailed explanation with examples, data, specific descriptions, and practical information for very professional and informative content. Content should be much more extensive than titles.';
+        ? '일반적인 PPT 프레젠테이션 형태로 만들어주세요. 각 슬라이드는 상세하고 풍부한 내용으로 구성하세요. 내용은 최소 100자에서 최대 300자로 작성하고, 불릿 포인트, 예시, 데이터, 구체적인 설명을 포함하여 전문적이고 정보가 풍부한 내용으로 작성해주세요.'
+        : 'Create in standard PPT presentation format with detailed and rich content. Content should be minimum 100 characters to maximum 300 characters, including bullet points, examples, data, and specific descriptions for professional and informative content.';
   }
 };
 

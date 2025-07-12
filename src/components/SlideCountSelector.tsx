@@ -47,7 +47,11 @@ export const SlideCountSelector: React.FC<SlideCountSelectorProps> = ({
         <button
           onClick={handleDecrease}
           disabled={count <= 1}
-          className="w-8 h-8 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className={`w-8 h-8 rounded-lg border flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
+            isDarkMode 
+              ? 'border-gray-600 hover:bg-gray-600 text-gray-300' 
+              : 'border-gray-300 hover:bg-gray-50 text-gray-700'
+          }`}
         >
           <Minus className="w-4 h-4" />
         </button>
@@ -59,15 +63,23 @@ export const SlideCountSelector: React.FC<SlideCountSelectorProps> = ({
             max="20"
             value={count}
             onChange={handleInputChange}
-            className="w-16 px-2 py-1 text-center border border-gray-300 rounded text-sm font-medium"
+            className={`w-16 px-2 py-1 text-center border rounded text-sm font-medium transition-colors ${
+              isDarkMode 
+                ? 'bg-gray-600 border-gray-500 text-white' 
+                : 'bg-white border-gray-300 text-gray-900'
+            }`}
           />
-          <span className="text-sm text-gray-600">개</span>
+          <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>개</span>
         </div>
         
         <button
           onClick={handleIncrease}
           disabled={count >= 20}
-          className="w-8 h-8 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className={`w-8 h-8 rounded-lg border flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
+            isDarkMode 
+              ? 'border-gray-600 hover:bg-gray-600 text-gray-300' 
+              : 'border-gray-300 hover:bg-gray-50 text-gray-700'
+          }`}
         >
           <Plus className="w-4 h-4" />
         </button>
@@ -81,9 +93,13 @@ export const SlideCountSelector: React.FC<SlideCountSelectorProps> = ({
           max="20"
           value={count}
           onChange={(e) => onCountChange(parseInt(e.target.value))}
-          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+          className={`w-full h-2 rounded-lg appearance-none cursor-pointer ${
+            isDarkMode ? 'bg-gray-600' : 'bg-gray-200'
+          }`}
         />
-        <div className="flex justify-between text-xs text-gray-500">
+        <div className={`flex justify-between text-xs ${
+          isDarkMode ? 'text-gray-400' : 'text-gray-500'
+        }`}>
           <span>1개</span>
           <span>20개</span>
         </div>
@@ -98,8 +114,12 @@ export const SlideCountSelector: React.FC<SlideCountSelectorProps> = ({
             className={`
               px-2 py-1 rounded text-xs font-medium transition-colors
               ${count === recommendedCount
-                ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? isDarkMode 
+                  ? 'bg-blue-600 text-blue-100 border border-blue-500'
+                  : 'bg-blue-100 text-blue-700 border border-blue-300'
+                : isDarkMode
+                  ? 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }
             `}
           >

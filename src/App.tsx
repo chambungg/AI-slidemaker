@@ -434,9 +434,9 @@ function App() {
       <div className="flex h-[calc(100vh-80px)]">
         {/* Left Panel - Input & Settings */}
         <ResizablePanel 
-          defaultWidth={280} 
-          minWidth={250} 
-          maxWidth={350} 
+          defaultWidth={320} 
+          minWidth={300} 
+          maxWidth={420} 
           position="left"
           className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-r p-4 overflow-y-auto transition-colors`}
         >
@@ -483,6 +483,7 @@ function App() {
               count={slideCount}
               onCountChange={setSlideCount}
               isDarkMode={isDarkMode}
+              language={state.language}
             />
 
             <ThemeSelector

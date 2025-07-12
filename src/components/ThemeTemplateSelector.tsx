@@ -116,7 +116,9 @@ export const ThemeTemplateSelector: React.FC<ThemeTemplateSelectorProps> = ({
             onClick={() => onTemplateChange(template)}
             className={`p-2 rounded border-2 transition-all duration-200 text-left ${
               currentTemplate.id === template.id
-                ? 'border-blue-500 bg-blue-50'
+                ? isDarkMode
+                  ? 'border-blue-500 bg-blue-900/50'
+                  : 'border-blue-500 bg-blue-50'
                 : isDarkMode
                   ? 'border-gray-600 hover:border-gray-500 hover:bg-gray-600'
                   : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
