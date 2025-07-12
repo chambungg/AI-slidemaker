@@ -128,7 +128,7 @@ export const exportToPDF = async (slides: Slide[], aspectRatio: AspectRatio) => 
           pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
         }
       } catch (slideError) {
-        console.error(`Error processing slide ${i + 1}:`, slideError);
+        // Slide processing error handled without logging
         pdf.setFontSize(24);
         pdf.text(slides[i].title, 20, 30);
         pdf.setFontSize(14);
@@ -154,7 +154,7 @@ export const exportToPDF = async (slides: Slide[], aspectRatio: AspectRatio) => 
     }, 3000);
 
   } catch (error) {
-    console.error('Error exporting to PDF:', error);
+    // PDF export error handled without logging
     newWindow.document.body.innerHTML = `
       <div class="container">
         <h2>❌ 오류 발생</h2>
@@ -259,7 +259,7 @@ const exportToHTMLWithImages = async (slides: Slide[], aspectRatio: AspectRatio)
             base64Image
           );
         } catch (error) {
-          console.warn('배경 이미지 변환 실패:', slide.backgroundImage);
+          // Background image conversion failed silently
         }
       }
       
@@ -274,7 +274,7 @@ const exportToHTMLWithImages = async (slides: Slide[], aspectRatio: AspectRatio)
                 base64Image
               );
             } catch (error) {
-              console.warn('요소 이미지 변환 실패:', element.content);
+              // Element image conversion failed silently
             }
           }
         }
@@ -345,7 +345,7 @@ const exportToHTMLWithImages = async (slides: Slide[], aspectRatio: AspectRatio)
 
     downloadHTMLFile(htmlContent, 'ai-presentation-with-images.html');
   } catch (error) {
-    console.error('이미지 포함 HTML 내보내기 오류:', error);
+    // HTML export with images error handled silently
     alert('이미지 포함 내보내기 중 오류가 발생했습니다. 기본 HTML로 내보냅니다.');
     exportToHTMLBasic(slides, aspectRatio);
   }

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ApiSettings as ApiSettingsType } from '../types';
 import { TRANSLATIONS } from '../constants';
-import { saveEncryptedApiKey, deleteApiKey, isApiKeyStored, getApiKeySavedTime } from '../utils/encryption';
+import { saveEncryptedApiKey, deleteApiKey, getApiKeySavedTime } from '../utils/encryption';
 import { Key, Save, Settings, Shield, Trash2, Clock } from 'lucide-react';
 
 interface ApiSettingsProps {

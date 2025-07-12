@@ -1,5 +1,4 @@
 // Unsplash API integration for high-quality free images
-const UNSPLASH_ACCESS_KEY = 'YOUR_UNSPLASH_ACCESS_KEY'; // Users would need to get their own key
 
 export interface UnsplashImage {
   id: string;
@@ -99,7 +98,7 @@ const IMAGE_CATEGORIES = {
   ],
 };
 
-export const searchImages = async (query: string, page = 1): Promise<PexelsImage[]> => {
+export const searchImages = async (query: string): Promise<PexelsImage[]> => {
   // Determine category based on query
   const lowerQuery = query.toLowerCase();
   let categoryImages: string[] = [];

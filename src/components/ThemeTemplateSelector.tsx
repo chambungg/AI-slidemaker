@@ -1,14 +1,7 @@
 import React from 'react';
-import { Layout, LayoutGrid } from 'lucide-react';
+import { LayoutGrid } from 'lucide-react';
 import { TRANSLATIONS } from '../constants';
-
-export interface ThemeTemplateOption {
-  id: string;
-  name: string;
-  description: string;
-  defaultLayout: string;
-  icon: React.ReactNode;
-}
+import { ThemeTemplateOption } from '../types';
 
 interface ThemeTemplateSelectorProps {
   currentTemplate: ThemeTemplateOption;

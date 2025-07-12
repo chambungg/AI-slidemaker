@@ -197,7 +197,7 @@ export const generateSlidesWithGemini = async (
 
   try {
     const response = await callGeminiAPI(prompt, apiKey);
-    console.log('Gemini API Response:', response);
+    // API response logging removed for security
     
     // Parse the response to extract slides
     const slides: Array<{ title: string; content: string; subtitle?: string; bulletPoints?: string[] }> = [];
@@ -227,11 +227,11 @@ export const generateSlidesWithGemini = async (
       }
     }
     
-    console.log('Parsed slides:', slides);
+    // Parsed slides logging removed for security
     
     // If parsing failed, try alternative parsing
     if (slides.length === 0) {
-      console.log('Primary parsing failed, trying alternative parsing...');
+      // Primary parsing failed, trying alternative parsing...
       
       // Try to extract any title/content patterns
       const titleMatches = response.match(/(?:제목|TITLE|Title):\s*(.+)/gi);
@@ -251,7 +251,7 @@ export const generateSlidesWithGemini = async (
     
     // If still no slides, create a fallback slide
     if (slides.length === 0) {
-      console.log('All parsing failed, creating fallback slide...');
+      // All parsing failed, creating fallback slide...
       
       // Split content into paragraphs and create slides
       const paragraphs = content.split('\n\n').filter(p => p.trim());
@@ -279,7 +279,7 @@ export const generateSlidesWithGemini = async (
     return slides;
     
   } catch (error) {
-    console.error('Error calling Gemini API:', error);
+    // Error handled without logging sensitive information
     
     // ApiError인 경우 사용자에게 친화적인 메시지와 함께 재throw
     if (error && typeof error === 'object' && 'userMessage' in error) {
@@ -325,7 +325,7 @@ export const updateSlideWithGemini = async (
     return { title, content };
     
   } catch (error) {
-    console.error('Error updating slide with Gemini:', error);
+    // Error handled without logging sensitive information
     
     // ApiError인 경우 재throw하여 사용자에게 적절한 피드백 제공
     if (error && typeof error === 'object' && 'userMessage' in error) {

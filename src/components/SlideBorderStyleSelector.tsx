@@ -1,15 +1,7 @@
 import React from 'react';
-import { Square, Minus, CornerUpLeft, Palette } from 'lucide-react';
+import { Square } from 'lucide-react';
 import { TRANSLATIONS } from '../constants';
-
-export interface SlideBorderStyle {
-  id: string;
-  name: string;
-  borderWidth: number;
-  borderStyle: string;
-  borderRadius: number;
-  boxShadow: string;
-}
+import { SlideBorderStyle } from '../types';
 
 export interface SlideBorderStyleSelectorProps {
   selectedStyle: SlideBorderStyle;

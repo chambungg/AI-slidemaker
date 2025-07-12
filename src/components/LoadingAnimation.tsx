@@ -70,12 +70,12 @@ export const LoadingAnimation: React.FC<LoadingAnimationProps> = ({
     stepTimer = setTimeout(advanceStep, loadingSteps[currentStepIndex].duration);
 
     return () => {
-      if (stepTimer) clearTimeout(stepTimer);
-      if (completionTimer) clearTimeout(completionTimer);
+      if (stepTimer) {clearTimeout(stepTimer);}
+      if (completionTimer) {clearTimeout(completionTimer);}
     };
   }, [isVisible, currentStepIndex, onComplete]);
 
-  if (!isVisible) return null;
+  if (!isVisible) {return null;}
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

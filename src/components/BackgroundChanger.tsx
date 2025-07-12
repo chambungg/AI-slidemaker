@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef } from 'react';
 import { TRANSLATIONS } from '../constants';
 import { Image, Upload, Sliders } from 'lucide-react';
 import { ImageSearch } from './ImageSearch';

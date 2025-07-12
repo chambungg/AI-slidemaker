@@ -1,5 +1,5 @@
 import React from 'react';
-import { Hash, Minus, Plus } from 'lucide-react';
+import { Minus, Plus } from 'lucide-react';
 
 export interface SlideCountSelectorProps {
   count: number;

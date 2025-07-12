@@ -28,7 +28,7 @@ export const encryptDataEnhanced = (data: string): string => {
     
     return `${base64Encoded}.${timestampEncoded}`;
   } catch (error) {
-    console.error('Enhanced encryption error:', error);
+    // Silently handle error without logging sensitive information
     return data;
   }
 };
@@ -43,7 +43,7 @@ export const decryptDataEnhanced = (encryptedData: string): string => {
       return decryptData(encryptedData);
     }
     
-    const [base64Data, timestampData] = parts;
+    const [base64Data] = parts;
     
     // 1단계: Base64 디코딩
     const aesEncrypted = CryptoJS.enc.Base64.parse(base64Data).toString(CryptoJS.enc.Utf8);
@@ -54,7 +54,7 @@ export const decryptDataEnhanced = (encryptedData: string): string => {
     
     return decrypted.toString(CryptoJS.enc.Utf8);
   } catch (error) {
-    console.error('Enhanced decryption error:', error);
+    // Silently handle error without logging sensitive information
     // 실패 시 레거시 복호화 시도
     return decryptData(encryptedData);
   }
@@ -65,7 +65,7 @@ export const encryptData = (data: string): string => {
   try {
     return CryptoJS.AES.encrypt(data, MASTER_KEY).toString();
   } catch (error) {
-    console.error('Encryption error:', error);
+    // Silently handle error without logging sensitive information
     return data;
   }
 };
@@ -76,7 +76,7 @@ export const decryptData = (encryptedData: string): string => {
     const bytes = CryptoJS.AES.decrypt(encryptedData, MASTER_KEY);
     return bytes.toString(CryptoJS.enc.Utf8);
   } catch (error) {
-    console.error('Decryption error:', error);
+    // Silently handle error without logging sensitive information
     return '';
   }
 };

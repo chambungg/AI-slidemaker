@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { SlideGeneratorState, Slide, Theme, AspectRatio, ApiSettings } from './types';
+import { SlideGeneratorState, Slide, ApiSettings, ThemeFont, ThemeTemplateOption, SlideBorderStyle } from './types';
 import { ASPECT_RATIOS, DEFAULT_THEMES, TRANSLATIONS } from './constants';
 import { AI_CONTENT_PROMPTS } from './constants/prompts';
 import { generateSlides, generateSlideHTML } from './utils/slideGenerator';
-import { exportToPDF, exportToHTML } from './utils/exportUtils';
 import { ExportModal } from './components/ExportModal';
 import { getDecryptedApiKey, saveEncryptedApiKey } from './utils/encryption';
 import { createDefaultBackgroundOptions, generatePicsumImage } from './utils/imageSearch';
@@ -11,28 +10,22 @@ import { ThemeSelector } from './components/ThemeSelector';
 import { AspectRatioSelector } from './components/AspectRatioSelector';
 import { SlidesContainer } from './components/SlidesContainer';
 import { ApiSettings as ApiSettingsComponent } from './components/ApiSettings';
-import { LanguageSelector } from './components/LanguageSelector';
 import { SlideTypeSelector, SlideType } from './components/SlideTypeSelector';
 import { ResizablePanel } from './components/ResizablePanel';
 import { LoadingAnimation } from './components/LoadingAnimation';
-import { ThemeFontSelector, ThemeFont } from './components/ThemeFontSelector';
-import { ThemeTemplateSelector, ThemeTemplateOption } from './components/ThemeTemplateSelector';
-import { SlideBorderStyleSelector, SlideBorderStyle } from './components/SlideBorderStyleSelector';
+import { ThemeFontSelector } from './components/ThemeFontSelector';
+import { ThemeTemplateSelector } from './components/ThemeTemplateSelector';
+import { SlideBorderStyleSelector } from './components/SlideBorderStyleSelector';
 import { SlideCountSelector } from './components/SlideCountSelector';
 import { 
   Sparkles, 
   Download, 
-  FileText, 
-  Globe, 
   Loader,
   Presentation,
   Lightbulb,
-  Shuffle,
   Sun,
   Moon,
-  Settings,
-  Languages,
-  Type
+  Settings
 } from 'lucide-react';
 // Hello World!
 function App() {
@@ -207,8 +200,8 @@ function App() {
         content: randomPrompt,
         isGenerating: false 
       }));
-    } catch (error) {
-      console.error('Error generating AI content prompt:', error);
+    } catch {
+      // Error handled without logging sensitive information
       setState(prev => ({ ...prev, isGenerating: false }));
     }
   };
@@ -239,8 +232,8 @@ function App() {
         activeSlideId: slides[0]?.id || null,
         isGenerating: false,
       }));
-    } catch (error) {
-      console.error('Error generating slides:', error);
+    } catch {
+      // Error handled without logging sensitive information
       alert('Error generating slides. Please check your API key and try again.');
       setState(prev => ({ ...prev, isGenerating: false }));
     }

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Slide, Theme, AspectRatio, SlideElement } from '../types';
+import { Slide, Theme, AspectRatio, SlideElement, ThemeFont, SlideBorderStyle } from '../types';
 import { SlidePreview } from './SlidePreview';
 import { BackgroundController } from './BackgroundController';
 import { SlideTemplateSelector, SlideLayoutType } from './SlideTemplateSelector';
@@ -14,16 +14,11 @@ import {
   AlignCenter,
   AlignRight,
   Trash2,
-  Save,
-  Check,
   Image as ImageIcon,
   Upload,
   Download,
   RotateCw,
   Move,
-  Square,
-  Palette,
-  X,
   Type
 } from 'lucide-react';
 
@@ -40,29 +35,6 @@ const FONT_FAMILIES = [
   "Impact, fantasy",
 ];
 
-// 간단한 마크다운 렌더러 (미리보기용)
-const renderMarkdownPreview = (text: string): string => {
-  if (!text) {return '';}
-  return text
-    // 헤딩 처리
-    .replace(/### (.*?)$/gm, '<span style="font-size: 1.2em; font-weight: bold;">$1</span>')
-    .replace(/## (.*?)$/gm, '<span style="font-size: 1.4em; font-weight: bold;">$1</span>')
-    .replace(/# (.*?)$/gm, '<span style="font-size: 1.6em; font-weight: bold;">$1</span>')
-    // 볼드 처리
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/__(.*?)__/g, '<strong>$1</strong>')
-    // 이탤릭 처리
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    .replace(/_(.*?)_/g, '<em>$1</em>')
-    // 코드 처리
-    .replace(/`(.*?)`/g, '<code style="background: rgba(0,0,0,0.1); padding: 2px 4px; border-radius: 3px;">$1</code>')
-    // 불릿 포인트 처리
-    .replace(/^\* (.*?)$/gm, '• $1')
-    .replace(/^- (.*?)$/gm, '• $1')
-    .replace(/^\+ (.*?)$/gm, '• $1')
-    // 번호 목록 처리 (간단히)
-    .replace(/^\d+\. (.*?)$/gm, '$1');
-};
 
 interface SlidesContainerProps {
   slides: Slide[];
@@ -71,8 +43,8 @@ interface SlidesContainerProps {
   language: 'ko' | 'en';
   theme: Theme;
   aspectRatio: AspectRatio;
-  themeFont?: any;
-  slideBorderStyle?: any;
+  themeFont?: ThemeFont;
+  slideBorderStyle?: SlideBorderStyle;
   isDarkMode?: boolean;
   onTabChange: (tab: 'preview' | 'code') => void;
   onSlideSelect: (slideId: string) => void;
@@ -102,7 +74,6 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
   const [selectedElementId, setSelectedElementId] = useState<string | undefined>();
   const [editingElement, setEditingElement] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [tempSlide, setTempSlide] = useState<Slide | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showTypingEffect, setShowTypingEffect] = useState(false);
@@ -244,7 +215,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
 
   // 요소 삭제 함수
   const deleteElement = useCallback((elementId: string) => {
-    if (!tempSlide) return;
+    if (!tempSlide) {return;}
 
     const updatedElements = tempSlide.elements?.filter(el => el.id !== elementId) || [];
 
@@ -318,13 +289,13 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
     setSelectedElementId(elementId);
 
     const containerRect = containerRef.current?.getBoundingClientRect();
-    if (!containerRect) return;
+    if (!containerRect) {return;}
 
     const initialMouseX = e.clientX;
     const initialMouseY = e.clientY;
     
     // Handle built-in elements (title, content) and regular elements differently
-    let element: any;
+    let element: SlideElement | ElementPosition;
     let isBuiltinElement = false;
     
     if (elementId === 'slide-title' || elementId === 'slide-content') {
@@ -350,7 +321,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
     } else {
       // Regular elements
       element = tempSlide?.elements?.find(el => el.id === elementId);
-      if (!element) return;
+      if (!element) {return;}
     }
 
     const initialX = element.x;
@@ -359,7 +330,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
     const initialHeight = element.height;
 
     const handleMouseMove = (e: MouseEvent) => {
-      if (!tempSlide || !containerRect) return;
+      if (!tempSlide || !containerRect) {return;}
 
       const deltaX = e.clientX - initialMouseX;
       const deltaY = e.clientY - initialMouseY;
@@ -433,13 +404,13 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
     e.preventDefault();
     e.stopPropagation();
     
-    if (!tempSlide) return;
+    if (!tempSlide) {return;}
     
     const element = tempSlide.elements?.find(el => el.id === elementId);
-    if (!element) return;
+    if (!element) {return;}
 
     const containerRect = containerRef.current?.getBoundingClientRect();
-    if (!containerRect) return;
+    if (!containerRect) {return;}
 
     const elementCenterX = element.x + element.width / 2;
     const elementCenterY = element.y + element.height / 2;
@@ -851,8 +822,8 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
         newWindow.close();
       }, 2000);
 
-    } catch (error) {
-      console.error('Error exporting slide as image:', error);
+    } catch {
+      // Image export error handled without logging sensitive information
       newWindow.document.body.innerHTML = `
         <div class="container">
           <h2>❌ 오류 발생</h2>
@@ -1205,7 +1176,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                   }
                                 })(),
                                 filter: (() => {
-                                  let filters = [];
+                                  const filters = [];
                                   if (tempSlide.backgroundImage && tempSlide.backgroundBlur) {
                                     filters.push(`blur(${tempSlide.backgroundBlur}px)`);
                                   }
@@ -1363,7 +1334,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                       setEditingElement('slide-title');
                                     }}
                                     onMouseDown={(e) => {
-                                      if (editingElement === 'slide-title') return; // 편집 중일 때는 드래그 방지
+                                      if (editingElement === 'slide-title') {return;} // 편집 중일 때는 드래그 방지
                                       handleMouseDown(e, 'slide-title', 'move');
                                     }}
                                   >
@@ -1493,7 +1464,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                         setEditingElement('slide-content');
                                       }}
                                       onMouseDown={(e) => {
-                                        if (editingElement === 'slide-content') return; // 편집 중일 때는 드래그 방지
+                                        if (editingElement === 'slide-content') {return;} // 편집 중일 때는 드래그 방지
                                         handleMouseDown(e, 'slide-content', 'move');
                                       }}
                                     >
@@ -1630,7 +1601,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                   outlineOffset: '2px',
                                 }}
                                 onMouseDown={(e) => {
-                                  if (editingElement === element.id) return; // 편집 중일 때는 드래그 방지
+                                  if (editingElement === element.id) {return;} // 편집 중일 때는 드래그 방지
                                   handleMouseDown(e, element.id, 'move');
                                 }}
                                 onClick={(e) => {
@@ -1759,7 +1730,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                           }}
                                           draggable={false}
                                           onError={(e) => {
-                                            console.error('Image load error:', e);
+                                            // Image load error handled silently
                                             // 이미지 로드 실패 시 플레이스홀더 표시
                                             (e.target as HTMLImageElement).style.display = 'none';
                                           }}
@@ -1861,7 +1832,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                             onBlurChange={handleBackgroundBlurChange}
                             onGrayscaleChange={handleBackgroundGrayscaleChange}
                             onBackgroundTypeChange={(type) => {
-                              if (!tempSlide) return;
+                              if (!tempSlide) {return;}
                               const updatedSlide = {
                                 ...tempSlide,
                                 backgroundType: type
@@ -1870,7 +1841,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                               setHasUnsavedChanges(true);
                             }}
                             onBackgroundChange={(background) => {
-                              if (!tempSlide) return;
+                              if (!tempSlide) {return;}
                               const updatedSlide = {
                                 ...tempSlide,
                                 backgroundColor: background,
@@ -1884,7 +1855,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                               setHasUnsavedChanges(true);
                             }}
                             onPatternChange={(pattern) => {
-                              if (!tempSlide) return;
+                              if (!tempSlide) {return;}
                               const updatedSlide = {
                                 ...tempSlide,
                                 backgroundPattern: pattern === 'none' ? undefined : pattern

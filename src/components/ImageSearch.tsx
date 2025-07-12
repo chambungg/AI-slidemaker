@@ -33,7 +33,7 @@ export const ImageSearch: React.FC<ImageSearchProps> = ({
       setImages(results);
       setShowResults(true);
     } catch (error) {
-      console.error('Image search error:', error);
+      // Image search error handled without logging
       // Fallback to random images
       const randomImages = getRandomImages(6);
       setImages(randomImages);

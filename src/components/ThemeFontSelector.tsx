@@ -1,18 +1,6 @@
 import React from 'react';
 import { Type } from 'lucide-react';
-
-export interface ThemeFont {
-  id: string;
-  name: string;
-  fontFamily: string;
-  fontUrl?: string;
-  effects: {
-    textShadow?: string;
-    textStroke?: string;
-    letterSpacing?: string;
-    fontWeight?: string;
-  };
-}
+import { ThemeFont } from '../types';
 
 interface ThemeFontSelectorProps {
   currentFont: ThemeFont;

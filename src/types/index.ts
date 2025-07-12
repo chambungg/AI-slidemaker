@@ -51,6 +51,13 @@ export interface SlideElement {
   rotation?: number;
 }
 
+export interface FontSizes {
+  title: number;
+  subtitle: number;
+  content: number;
+  bullet: number;
+}
+
 export interface AnimationEffect {
   type: 'fadeIn' | 'slideInLeft' | 'slideInRight' | 'slideInUp' | 'slideInDown' | 'zoomIn' | 'bounceIn' | 'none';
   duration: number;
@@ -76,6 +83,69 @@ export interface AspectRatio {
   height: number;
 }
 
+// Font style types
+export type ThemeFontId = 
+  | 'modern-clean'
+  | 'elegant-serif'
+  | 'bold-impact'
+  | 'playful-round'
+  | 'minimal-light'
+  | 'handwriting'
+  | 'tech-mono'
+  | 'vintage-classic'
+  | 'futuristic'
+  | 'artistic-brush';
+
+export interface ThemeFont {
+  id: ThemeFontId;
+  name: string;
+  fontFamily: string;
+  fontUrl?: string;
+  effects: {
+    textShadow?: string;
+    textStroke?: string;
+    letterSpacing?: string;
+    fontWeight?: string;
+  };
+}
+
+// Template style types
+export type ThemeTemplateId = 
+  | 'mixed-auto'
+  | 'presentation-formal'
+  | 'side-by-side'
+  | 'title-focus'
+  | 'content-heavy'
+  | 'creative-asymmetric';
+
+export interface ThemeTemplateOption {
+  id: ThemeTemplateId;
+  name: string;
+  description: string;
+  defaultLayout: string;
+  icon?: React.ReactNode;
+}
+
+// Border style types
+export type SlideBorderStyleId = 
+  | 'none'
+  | 'clean-minimal'
+  | 'modern-card'
+  | 'bold-frame'
+  | 'dashed-creative'
+  | 'dotted-playful'
+  | 'double-professional'
+  | 'glow-effect';
+
+export interface SlideBorderStyle {
+  id: SlideBorderStyleId;
+  name: string;
+  borderWidth: number;
+  borderStyle: string;
+  borderRadius: number;
+  boxShadow: string;
+}
+
 export interface SlideGeneratorState {
   content: string;
   theme: Theme;
@@ -87,9 +157,9 @@ export interface SlideGeneratorState {
   geminiApiKey: string;
   language: 'ko' | 'en';
   selectedElementId?: string;
-  themeFont?: any;
-  themeTemplate?: any;
-  slideBorderStyle?: any;
+  themeFont?: ThemeFont;
+  themeTemplate?: ThemeTemplateOption;
+  slideBorderStyle?: SlideBorderStyle;
   slideCount?: number;
 }
 

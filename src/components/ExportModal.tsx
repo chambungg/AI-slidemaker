@@ -4,8 +4,6 @@ import { exportToPDF, exportToHTML } from '../utils/exportUtils';
 import { 
   FileText, 
   Globe, 
-  Download, 
-  Image as ImageIcon, 
   Archive, 
   AlignLeft,
   X,
@@ -86,8 +84,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           await exportAsLongImage();
           break;
       }
-    } catch (error) {
-      console.error('Export error:', error);
+    } catch {
+      // Export error handled silently
       alert('내보내기 중 오류가 발생했습니다.');
     } finally {
       setIsExporting(false);
@@ -242,8 +240,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({
         newWindow.close();
       }, 3000);
 
-    } catch (error) {
-      console.error('ZIP 생성 오류:', error);
+    } catch {
+      // ZIP generation error handled silently
       newWindow.document.body.innerHTML = `
         <div class="container">
           <h2>❌ 오류 발생</h2>
@@ -387,8 +385,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({
         newWindow.close();
       }, 3000);
 
-    } catch (error) {
-      console.error('긴 이미지 생성 오류:', error);
+    } catch {
+      // Long image generation error handled silently
       newWindow.document.body.innerHTML = `
         <div class="container">
           <h2>❌ 오류 발생</h2>

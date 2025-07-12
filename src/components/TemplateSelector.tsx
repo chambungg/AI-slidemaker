@@ -1,18 +1,16 @@
 import React from 'react';
-import { SlideTemplate, Theme } from '../types';
+import { SlideTemplate } from '../types';
 import { SLIDE_TEMPLATES, TRANSLATIONS } from '../constants';
 import { Palette } from 'lucide-react';
 
 interface TemplateSelectorProps {
   selectedTemplate: string;
-  theme: Theme;
   language: 'ko' | 'en';
   onTemplateChange: (template: SlideTemplate) => void;
 }
 
 export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
   selectedTemplate,
-  theme,
   language,
   onTemplateChange,
 }) => {

@@ -40,7 +40,7 @@ export const SlideEditor: React.FC<SlideEditorProps> = ({
       onSlideUpdate(updatedSlide);
       setEditPrompt('');
     } catch (error) {
-      console.error('Error updating slide:', error);
+      // Slide update error handled without logging sensitive information
       alert('Error updating slide. Please check your API key and try again.');
     } finally {
       setIsUpdating(false);
@@ -103,7 +103,6 @@ export const SlideEditor: React.FC<SlideEditorProps> = ({
       <div className="bg-white rounded-lg border border-gray-200 p-4">
         <TemplateSelector
           selectedTemplate={slide.template || 'title-center'}
-          theme={theme}
           language={language}
           onTemplateChange={(template) => handleTemplateChange(template.id)}
         />

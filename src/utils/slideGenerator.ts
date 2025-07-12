@@ -1,8 +1,6 @@
-import { Slide, Theme, AspectRatio, SlideElement } from '../types';
+import { Slide, Theme, AspectRatio, SlideElement, ThemeFont, SlideBorderStyle, FontSizes } from '../types';
 import { generateSlidesWithGemini, updateSlideWithGemini } from './geminiApi';
 import { SlideType } from '../components/SlideTypeSelector';
-import { ThemeFont } from '../components/ThemeFontSelector';
-import { SlideBorderStyle } from '../components/SlideBorderStyleSelector';
 import { getBackgroundForContent, createDefaultBackgroundOptions, generatePicsumImage } from './imageSearch';
 
 // 간단한 마크다운 렌더러
@@ -59,7 +57,7 @@ const createDefaultElements = (
   content: string,
   layout: string,
   aspectRatio: AspectRatio,
-  fontSizes: any,
+  fontSizes: FontSizes,
   themeFont?: ThemeFont,
   theme?: Theme,
   backgroundImage?: string
@@ -221,7 +219,7 @@ export const generateSlides = async (
 
     return slides;
   } catch (error) {
-    console.error('Error generating slides with Gemini:', error);
+    // Error handled without logging sensitive information
     // Fallback to simple parsing if API fails
     return generateSlidesSimple(content, theme, aspectRatio, slideType, templateStyle);
   }
@@ -406,8 +404,6 @@ export const generateSlideHTML = (
     // 콘텐츠 분량 기반 추가 배율 계산
     const getContentLengthMultiplier = () => {
       const totalContentLength = title.length + content.length;
-      const titleLength = title.length;
-      const contentLength = content.length;
       
       // 카드뉴스와 이미지카드 타입에서만 콘텐츠 분량에 따른 배율 적용
       if (slideType === 'cardnews' || slideType === 'imagecard') {
@@ -916,7 +912,7 @@ export const updateSlideContent = async (
       ),
     };
   } catch (error) {
-    console.error('Error updating slide with Gemini:', error);
+    // Error handled without logging sensitive information
     // Fallback to simple update
     const lines = updateRequest.split('\n').filter(line => line.trim());
     const title = lines[0] || slide.title;

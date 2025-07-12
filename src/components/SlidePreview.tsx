@@ -13,8 +13,6 @@ interface SlidePreviewProps {
   isActive: boolean;
   onClick: () => void;
   containerStyle?: React.CSSProperties;
-  showTypingEffect?: boolean;
-  typingDelay?: number;
   isDarkMode?: boolean;
 }
 
@@ -28,8 +26,6 @@ export const SlidePreview: React.FC<SlidePreviewProps> = ({
   isActive,
   onClick,
   containerStyle,
-  showTypingEffect = false,
-  typingDelay = 0,
   isDarkMode = false,
 }) => {
   const t = TRANSLATIONS[language];
@@ -41,8 +37,8 @@ export const SlidePreview: React.FC<SlidePreviewProps> = ({
       await navigator.clipboard.writeText(slide.htmlContent);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy HTML:', err);
+    } catch {
+      // Copy error handled silently
     }
   };
 
