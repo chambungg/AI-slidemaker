@@ -225,7 +225,7 @@ function App() {
         state.language,
         slideType,
         slideCount,
-        'mixed-auto' // 혼합 템플릿 사용
+        themeTemplate.id // 선택된 템플릿 사용
       );
       setState(prev => ({
         ...prev,
@@ -482,11 +482,38 @@ function App() {
               />
             </div>
 
+            <button
+              onClick={handleGenerate}
+              disabled={!state.content.trim() || state.isGenerating || !state.geminiApiKey}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 active:scale-95 hover:shadow-lg"
+            >
+              {state.isGenerating ? (
+                <>
+                  <Loader className="w-5 h-5 animate-spin" />
+                  {t.generating}
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-5 h-5" />
+                  {t.generateSlides}
+                </>
+              )}
+            </button>
+
             <div className="w-full max-w-full overflow-hidden">
               <SlideTypeSelector
                 selectedType={slideType}
                 language={state.language}
                 onTypeChange={handleSlideTypeChange}
+                isDarkMode={isDarkMode}
+              />
+            </div>
+
+            <div className="w-full max-w-full overflow-hidden">
+              <AspectRatioSelector
+                selectedRatio={state.aspectRatio}
+                onRatioChange={(aspectRatio) => setState(prev => ({ ...prev, aspectRatio }))}
+                language={state.language}
                 isDarkMode={isDarkMode}
               />
             </div>
@@ -536,32 +563,6 @@ function App() {
               />
             </div>
 
-            <div className="w-full max-w-full overflow-hidden">
-              <AspectRatioSelector
-                selectedRatio={state.aspectRatio}
-                onRatioChange={(aspectRatio) => setState(prev => ({ ...prev, aspectRatio }))}
-                language={state.language}
-                isDarkMode={isDarkMode}
-              />
-            </div>
-
-            <button
-              onClick={handleGenerate}
-              disabled={!state.content.trim() || state.isGenerating || !state.geminiApiKey}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {state.isGenerating ? (
-                <>
-                  <Loader className="w-5 h-5 animate-spin" />
-                  {t.generating}
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-5 h-5" />
-                  {t.generateSlides}
-                </>
-              )}
-            </button>
           </div>
         </ResizablePanel>
 

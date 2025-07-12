@@ -113,15 +113,9 @@ export const SlidePreview: React.FC<SlidePreviewProps> = ({
           />
         ) : (
           <div 
-            className="text-xs bg-gray-100 p-3 rounded overflow-auto max-h-40 cursor-text select-all"
+            className="text-xs bg-gray-100 p-3 rounded overflow-auto h-96 cursor-text"
             onClick={(e) => {
               e.stopPropagation();
-              // HTML 코드 영역 클릭 시 전체 선택
-              const selection = window.getSelection();
-              const range = document.createRange();
-              range.selectNodeContents(e.currentTarget);
-              selection?.removeAllRanges();
-              selection?.addRange(range);
             }}
           >
             <pre className="whitespace-pre-wrap font-mono">

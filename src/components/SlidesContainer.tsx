@@ -184,7 +184,7 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
       htmlContent: updatedHtmlContent,
     } : null);
 
-  }, [tempSlide?.title, tempSlide?.content, tempSlide?.backgroundSeed, tempSlide?.backgroundBlur, tempSlide?.backgroundGrayscale, tempSlide?.slideLayout, theme, aspectRatio, themeFont, slideBorderStyle]);
+  }, [tempSlide?.title, tempSlide?.content, tempSlide?.backgroundSeed, tempSlide?.backgroundBlur, tempSlide?.backgroundGrayscale, tempSlide?.slideLayout, tempSlide?.template, tempSlide?.backgroundType, tempSlide?.backgroundColor, tempSlide?.backgroundPattern, tempSlide?.elements, theme, aspectRatio, themeFont, slideBorderStyle]);
 
   // 자동 저장 - 변경사항을 실제 슬라이드에 저장
   useEffect(() => {
