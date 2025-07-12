@@ -73,7 +73,7 @@ export const SlideTypeSelector: React.FC<SlideTypeSelectorProps> = ({
       isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-200'
     }`}>
       <h4 className={`text-sm font-semibold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
-        슬라이드 타입
+        {language === 'ko' ? '슬라이드 타입' : 'Slide Type'}
       </h4>
       
       <div className="grid grid-cols-3 gap-2">

@@ -17,6 +17,8 @@ export interface ThemeFont {
 interface ThemeFontSelectorProps {
   currentFont: ThemeFont;
   onFontChange: (font: ThemeFont) => void;
+  isDarkMode?: boolean;
+  language?: 'ko' | 'en';
 }
 
 const THEME_FONTS: ThemeFont[] = [
@@ -135,12 +137,16 @@ const THEME_FONTS: ThemeFont[] = [
 export const ThemeFontSelector: React.FC<ThemeFontSelectorProps> = ({
   currentFont,
   onFontChange,
+  isDarkMode = false,
+  language = 'ko',
 }) => {
   return (
-    <div className="bg-white rounded-lg border p-3 space-y-3">
-      <h4 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+    <div className={`rounded-lg border p-3 space-y-3 transition-colors ${
+      isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-200'
+    }`}>
+      <h4 className={`text-sm font-semibold flex items-center gap-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
         <Type className="w-4 h-4" />
-        폰트 스타일
+        {language === 'ko' ? '폰트 스타일' : 'Font Style'}
       </h4>
       
       <div className="grid grid-cols-2 gap-2">
@@ -148,25 +154,42 @@ export const ThemeFontSelector: React.FC<ThemeFontSelectorProps> = ({
           <button
             key={font.id}
             onClick={() => onFontChange(font)}
-            className={`p-2 rounded border-2 transition-all duration-200 text-left ${
+            className={`relative p-3 rounded border-2 transition-all duration-200 group ${
               currentFont.id === font.id
-                ? 'border-blue-500 bg-blue-50'
-                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                ? isDarkMode 
+                  ? 'border-blue-400 bg-blue-900 bg-opacity-30' 
+                  : 'border-blue-500 bg-blue-50'
+                : isDarkMode
+                  ? 'border-gray-600 hover:border-gray-500 hover:bg-gray-600'
+                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
             }`}
+            title={language === 'ko' ? font.name : font.name}
           >
-            <div 
-              className="text-sm font-medium mb-1"
-              style={{
-                fontFamily: font.fontFamily,
-                textShadow: font.effects.textShadow,
-                letterSpacing: font.effects.letterSpacing,
-                fontWeight: font.effects.fontWeight,
-              }}
-            >
-              예시 텍스트
+            <div className="text-left">
+              <div className={`text-xs font-medium mb-1 ${
+                currentFont.id === font.id 
+                  ? isDarkMode ? 'text-blue-300' : 'text-blue-800'
+                  : isDarkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                {language === 'ko' ? font.name : font.id}
+              </div>
+              <div 
+                className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}
+                style={{
+                  fontFamily: font.fontFamily,
+                  fontWeight: font.effects.fontWeight,
+                  letterSpacing: font.effects.letterSpacing,
+                  lineHeight: '1.2', // Assuming a default line height for preview
+                }}
+              >
+                {language === 'ko' ? '안녕하세요!' : 'Hello World!'}
+              </div>
             </div>
-            <div className="text-xs text-gray-600 truncate">
-              {font.name}
+            
+            {/* 툴팁 */}
+            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 whitespace-nowrap">
+              {language === 'ko' ? font.name : font.name}
+              <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
             </div>
           </button>
         ))}

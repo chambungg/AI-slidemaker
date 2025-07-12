@@ -28,7 +28,8 @@ import {
   Sun,
   Moon,
   Settings,
-  Languages
+  Languages,
+  Type
 } from 'lucide-react';
 // Hello World!
 function App() {
@@ -527,28 +528,32 @@ function App() {
           <div className="space-y-4">
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-gray-700">
+                <label className={`block text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
                   {t.content}
                 </label>
                 <button
                   onClick={generateAIContentPrompt}
                   disabled={!state.geminiApiKey || state.isGenerating}
                   className="flex items-center gap-1 px-2 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  title="프롬프트 예시를 생성합니다"
+                  title={state.language === 'ko' ? '프롬프트 예시를 생성합니다' : 'Generate prompt example'}
                 >
                   {state.isGenerating ? (
                     <Loader className="w-3 h-3 animate-spin" />
                   ) : (
                     <Lightbulb className="w-3 h-3" />
                   )}
-                  프롬프트 예시
+                  {state.language === 'ko' ? '프롬프트 예시' : 'Prompt Example'}
                 </button>
               </div>
               <textarea
                 value={state.content}
                 onChange={(e) => setState(prev => ({ ...prev, content: e.target.value }))}
                 placeholder={t.contentPlaceholder}
-                className="w-full h-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                className={`w-full h-32 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-colors ${
+                  isDarkMode 
+                    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                    : 'border-gray-300 text-gray-900 placeholder-gray-500'
+                }`}
               />
             </div>
 
@@ -576,18 +581,21 @@ function App() {
               currentFont={themeFont}
               onFontChange={setThemeFont}
               isDarkMode={isDarkMode}
+              language={state.language}
             />
 
             <ThemeTemplateSelector
               currentTemplate={themeTemplate}
               onTemplateChange={setThemeTemplate}
               isDarkMode={isDarkMode}
+              language={state.language}
             />
 
             <SlideBorderStyleSelector
               selectedStyle={slideBorderStyle}
               onStyleChange={setSlideBorderStyle}
               isDarkMode={isDarkMode}
+              language={state.language}
             />
 
             <AspectRatioSelector

@@ -4,11 +4,15 @@ import { Hash, Minus, Plus } from 'lucide-react';
 export interface SlideCountSelectorProps {
   count: number;
   onCountChange: (count: number) => void;
+  isDarkMode?: boolean;
+  language?: 'ko' | 'en';
 }
 
 export const SlideCountSelector: React.FC<SlideCountSelectorProps> = ({
   count,
   onCountChange,
+  isDarkMode = false,
+  language = 'ko',
 }) => {
   const handleDecrease = () => {
     if (count > 1) {
@@ -30,10 +34,13 @@ export const SlideCountSelector: React.FC<SlideCountSelectorProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-lg border p-3 space-y-3">
-      <div className="flex items-center gap-2">
-        <Hash className="w-4 h-4 text-gray-600" />
-        <h4 className="text-sm font-semibold text-gray-800">슬라이드 개수</h4>
+    <div className={`rounded-lg border p-3 space-y-3 transition-colors ${
+      isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-200'
+    }`}>
+      <div className="flex items-center justify-between">
+        <h4 className={`text-sm font-semibold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+          {language === 'ko' ? '슬라이드 개수' : 'Number of Slides'}
+        </h4>
       </div>
       
       <div className="flex items-center gap-3">
