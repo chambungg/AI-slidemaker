@@ -14,6 +14,7 @@ interface SlideTypeSelectorProps {
   selectedType: SlideType;
   language: 'ko' | 'en';
   onTypeChange: (type: SlideType) => void;
+  isDarkMode?: boolean;
 }
 
 const SLIDE_TYPE_OPTIONS: Record<'ko' | 'en', SlideTypeOption[]> = {
@@ -63,12 +64,15 @@ export const SlideTypeSelector: React.FC<SlideTypeSelectorProps> = ({
   selectedType,
   language,
   onTypeChange,
+  isDarkMode = false,
 }) => {
   const options = SLIDE_TYPE_OPTIONS[language];
 
   return (
-    <div className="bg-white rounded-lg border p-3 space-y-3">
-      <h4 className="text-sm font-semibold text-gray-800">
+    <div className={`rounded-lg border p-3 space-y-3 transition-colors ${
+      isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-200'
+    }`}>
+      <h4 className={`text-sm font-semibold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
         슬라이드 타입
       </h4>
       
@@ -79,17 +83,23 @@ export const SlideTypeSelector: React.FC<SlideTypeSelectorProps> = ({
             onClick={() => onTypeChange(option.id)}
             className={`relative p-3 rounded border-2 transition-all duration-200 group ${
               selectedType === option.id
-                ? 'border-blue-500 bg-blue-50'
-                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                ? isDarkMode 
+                  ? 'border-blue-400 bg-blue-900 bg-opacity-30' 
+                  : 'border-blue-500 bg-blue-50'
+                : isDarkMode
+                  ? 'border-gray-600 hover:border-gray-500 hover:bg-gray-600'
+                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
             }`}
             title={option.description}
           >
             <div className="flex flex-col items-center gap-2">
-              <div className={`${selectedType === option.id ? 'text-blue-600' : 'text-gray-600'}`}>
+              <div className={`${selectedType === option.id ? 'text-blue-400' : isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                 {option.icon}
               </div>
               <span className={`text-xs font-medium ${
-                selectedType === option.id ? 'text-blue-800' : 'text-gray-700'
+                selectedType === option.id 
+                  ? isDarkMode ? 'text-blue-300' : 'text-blue-800'
+                  : isDarkMode ? 'text-gray-300' : 'text-gray-700'
               }`}>
                 {option.name}
               </span>

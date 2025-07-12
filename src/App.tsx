@@ -556,38 +556,45 @@ function App() {
               selectedType={slideType}
               language={state.language}
               onTypeChange={handleSlideTypeChange}
+              isDarkMode={isDarkMode}
             />
 
             <SlideCountSelector
               count={slideCount}
               onCountChange={setSlideCount}
+              isDarkMode={isDarkMode}
             />
 
             <ThemeSelector
               selectedTheme={state.theme}
               onThemeChange={(theme) => setState(prev => ({ ...prev, theme }))}
               language={state.language}
+              isDarkMode={isDarkMode}
             />
 
             <ThemeFontSelector
               currentFont={themeFont}
               onFontChange={setThemeFont}
+              isDarkMode={isDarkMode}
             />
 
             <ThemeTemplateSelector
               currentTemplate={themeTemplate}
               onTemplateChange={setThemeTemplate}
+              isDarkMode={isDarkMode}
             />
 
             <SlideBorderStyleSelector
               selectedStyle={slideBorderStyle}
               onStyleChange={setSlideBorderStyle}
+              isDarkMode={isDarkMode}
             />
 
             <AspectRatioSelector
               selectedRatio={state.aspectRatio}
               onRatioChange={(aspectRatio) => setState(prev => ({ ...prev, aspectRatio }))}
               language={state.language}
+              isDarkMode={isDarkMode}
             />
 
             <button
