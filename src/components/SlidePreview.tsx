@@ -145,21 +145,20 @@ export const SlidePreview: React.FC<SlidePreviewProps> = ({
           <div
             className="w-full overflow-hidden relative bg-white rounded-lg border border-gray-200"
             style={{
-              ...containerStyle,
-              minHeight: '300px', // 최소 높이 보장
-              aspectRatio: containerStyle?.width && containerStyle?.height 
-                ? `${parseInt(containerStyle.width.toString())} / ${parseInt(containerStyle.height.toString())}`
-                : '16 / 9'
+              width: containerStyle?.width || '500px',
+              height: containerStyle?.height || '300px',
+              minHeight: '200px', // 최소 높이 보장
+              maxWidth: '100%'
             }}
           >
             <div
-              className="slide-preview-content"
+              className="slide-preview-content absolute inset-0"
               style={{
                 transformOrigin: 'top left',
+                transform: 'scale(1)', // 스케일 1로 고정
+                overflow: 'hidden',
                 width: '100%',
-                height: '100%',
-                transform: 'scale(1)', // 스케일 초기화
-                overflow: 'hidden'
+                height: '100%'
               }}
               dangerouslySetInnerHTML={{ __html: slide.htmlContent }}
             />

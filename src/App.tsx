@@ -128,19 +128,22 @@ function App() {
     if (state.slides.length > 0) {
       const updatedSlides = state.slides.map(slide => {
         // 화면 비율이 변경되면 배경 이미지도 새로 생성하지만 시드는 유지
-        const backgroundImage = slide.backgroundSeed 
-          ? generatePicsumImage(
-              state.aspectRatio.width,
-              state.aspectRatio.height,
-              slide.backgroundSeed,
-              slide.backgroundBlur || 2,
-              slide.backgroundGrayscale || false
-            )
-          : slide.backgroundImage;
+        // 배경 타입에 따라 표시할 배경 결정
+        const finalBackgroundImage = (slide.backgroundType === 'image' || !slide.backgroundType)
+          ? (slide.backgroundSeed
+              ? generatePicsumImage(
+                  state.aspectRatio.width,
+                  state.aspectRatio.height,
+                  slide.backgroundSeed,
+                  slide.backgroundBlur || 2,
+                  slide.backgroundGrayscale || false
+                )
+              : slide.backgroundImage)
+          : undefined;
 
         return {
           ...slide,
-          backgroundImage,
+          backgroundImage: finalBackgroundImage,
           htmlContent: generateSlideHTML(
             slide.title,
             slide.content,
@@ -150,11 +153,11 @@ function App() {
             themeFont,
             slideBorderStyle,
             slide.template || themeTemplate.defaultLayout,
-            backgroundImage,
+            finalBackgroundImage,
             slide.backgroundBlur || 2,
             slide.themeOverlay || 0.3,
-            undefined, // backgroundColor
-            undefined, // backgroundPattern
+            slide.backgroundType === 'color' ? slide.backgroundColor : undefined, // 배경 타입 유지
+            slide.backgroundPattern, // 패턴도 유지
             slide.elements, // elements
             'ppt' // 기본값
           ),

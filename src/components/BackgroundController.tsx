@@ -9,6 +9,8 @@ interface BackgroundControllerProps {
   width: number;
   height: number;
   backgroundType?: 'image' | 'color';
+  previousSlideBackgroundSeed?: string; // 이전 슬라이드 배경 시드
+  currentPattern?: string; // 현재 선택된 패턴
   onSeedChange: (seed: string) => void;
   onBlurChange: (blur: number) => void;
   onGrayscaleChange: (grayscale: boolean) => void;
@@ -25,6 +27,8 @@ export const BackgroundController: React.FC<BackgroundControllerProps> = ({
   width,
   height,
   backgroundType = 'image',
+  previousSlideBackgroundSeed,
+  currentPattern = 'none',
   onSeedChange,
   onBlurChange,
   onGrayscaleChange,
@@ -169,22 +173,47 @@ export const BackgroundController: React.FC<BackgroundControllerProps> = ({
       {/* 이미지 관련 컨트롤들 */}
       {backgroundType === 'image' && (
         <>
-          {/* 이미지 미리보기 */}
+          {/* 이미지 미리보기 - 현재/이전 슬라이드 비교 */}
           <div className="relative">
             {currentImageLoading && (
               <div className="absolute inset-0 bg-gray-200 rounded border flex items-center justify-center z-10">
                 <Loader className="w-6 h-6 animate-spin text-gray-400" />
               </div>
             )}
-            <img
-              src={currentImageUrl}
-              alt="Background preview"
-              className="w-full h-20 object-cover rounded border"
-              onLoad={handleCurrentImageLoad}
-              onError={handleCurrentImageLoad}
-            />
-            <div className="absolute inset-0 bg-black bg-opacity-20 rounded flex items-center justify-center">
-              <span className="text-white text-xs font-medium">현재 이미지</span>
+            <div className="flex h-20 rounded border overflow-hidden">
+              {/* 현재 슬라이드 이미지 (왼쪽 절반) */}
+              <div className="flex-1 relative">
+                <img
+                  src={currentImageUrl}
+                  alt="Current slide background"
+                  className="w-full h-full object-cover"
+                  onLoad={handleCurrentImageLoad}
+                  onError={handleCurrentImageLoad}
+                />
+                <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center">
+                  <span className="text-white text-xs font-medium">현재</span>
+                </div>
+              </div>
+              
+              {/* 이전 슬라이드 이미지 (오른쪽 절반) */}
+              <div className="flex-1 relative border-l">
+                {previousSlideBackgroundSeed ? (
+                  <>
+                    <img
+                      src={generatePicsumImage(width, height, previousSlideBackgroundSeed, blur, grayscale)}
+                      alt="Previous slide background"
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center">
+                      <span className="text-white text-xs font-medium">이전</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                    <span className="text-gray-500 text-xs">첫 슬라이드</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -193,7 +222,7 @@ export const BackgroundController: React.FC<BackgroundControllerProps> = ({
             <h5 className="text-xs font-medium text-gray-600">다른 이미지 후보</h5>
             <div className="grid grid-cols-5 gap-1">
               {candidateSeeds.map((candidateSeed, index) => {
-                const candidateUrl = generatePicsumImage(width, height, candidateSeed, blur, grayscale);
+                const candidateUrl = generatePicsumImage(90, 90, candidateSeed, blur, grayscale); // 90x90px로 최적화
                 const isLoading = loadingImages[candidateSeed];
                 
                 return (
@@ -319,13 +348,13 @@ export const BackgroundController: React.FC<BackgroundControllerProps> = ({
           패턴/필터
         </label>
         <select
+          value={currentPattern}
           onChange={(e) => onPatternChange && onPatternChange(e.target.value)}
           className={`w-full px-2 py-1 border rounded text-xs ${
             isDarkMode 
               ? 'bg-gray-700 border-gray-600 text-white' 
               : 'bg-white border-gray-300 text-gray-900'
           }`}
-          defaultValue="none"
         >
           {patterns.map((pattern) => (
             <option key={pattern.value} value={pattern.value}>

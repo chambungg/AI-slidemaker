@@ -23,7 +23,8 @@ import {
   Move,
   Square,
   Palette,
-  X
+  X,
+  Type
 } from 'lucide-react';
 
 const FONT_FAMILIES = [
@@ -918,20 +919,6 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
         <h2 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
           {t.generatedSlides} ({slides.length})
         </h2>
-        <div className="flex items-center gap-3">
-          {/* Add slide at end button */}
-          <button
-            onClick={() => onAddSlide()}
-            className={`group flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
-              isDarkMode 
-                ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-green-500/25' 
-                : 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg hover:shadow-green-500/25'
-            } hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2`}
-          >
-            <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-200" />
-            {t.addSlide}
-          </button>
-        </div>
       </div>
 
       <div className="space-y-6">
@@ -1121,9 +1108,57 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                     return `linear-gradient(135deg, ${theme.primary}15, ${theme.secondary}15)`;
                                   }
                                 })(),
-                                filter: tempSlide.backgroundImage && tempSlide.backgroundBlur ? `blur(${tempSlide.backgroundBlur}px)` : 'none',
-                                backgroundImage: tempSlide.backgroundPattern ? `url("data:image/svg+xml,${encodeURIComponent(tempSlide.backgroundPattern)}")` : undefined,
-                                backgroundBlendMode: tempSlide.backgroundPattern ? 'overlay' : 'normal',
+                                filter: (() => {
+                                  let filters = [];
+                                  if (tempSlide.backgroundImage && tempSlide.backgroundBlur) {
+                                    filters.push(`blur(${tempSlide.backgroundBlur}px)`);
+                                  }
+                                  
+                                  // 패턴 필터 적용
+                                  if (tempSlide.backgroundPattern && tempSlide.backgroundPattern !== 'none') {
+                                    switch (tempSlide.backgroundPattern) {
+                                      case 'gaussian-blur':
+                                        filters.push('blur(2px)');
+                                        break;
+                                      case 'motion-blur-horizontal':
+                                        filters.push('blur(1px)');
+                                        break;
+                                      case 'motion-blur-vertical':
+                                        filters.push('blur(1px)');
+                                        break;
+                                      case 'fisheye':
+                                        filters.push('brightness(1.1) contrast(1.1)');
+                                        break;
+                                      case 'wide-angle':
+                                        filters.push('brightness(0.9) contrast(1.2)');
+                                        break;
+                                    }
+                                  }
+                                  
+                                  return filters.length > 0 ? filters.join(' ') : 'none';
+                                })(),
+                                // 패턴 오버레이
+                                ...(tempSlide.backgroundPattern && tempSlide.backgroundPattern !== 'none' && {
+                                  backgroundImage: (() => {
+                                    switch (tempSlide.backgroundPattern) {
+                                      case 'grid-small':
+                                        return 'repeating-linear-gradient(0deg, transparent, transparent 8px, rgba(0,0,0,0.1) 8px, rgba(0,0,0,0.1) 9px), repeating-linear-gradient(90deg, transparent, transparent 8px, rgba(0,0,0,0.1) 8px, rgba(0,0,0,0.1) 9px)';
+                                      case 'grid-large':
+                                        return 'repeating-linear-gradient(0deg, transparent, transparent 20px, rgba(0,0,0,0.1) 20px, rgba(0,0,0,0.1) 21px), repeating-linear-gradient(90deg, transparent, transparent 20px, rgba(0,0,0,0.1) 20px, rgba(0,0,0,0.1) 21px)';
+                                      case 'grid-xlarge':
+                                        return 'repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(0,0,0,0.1) 40px, rgba(0,0,0,0.1) 41px), repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(0,0,0,0.1) 40px, rgba(0,0,0,0.1) 41px)';
+                                      case 'lines-horizontal':
+                                        return 'repeating-linear-gradient(0deg, transparent, transparent 10px, rgba(0,0,0,0.1) 10px, rgba(0,0,0,0.1) 11px)';
+                                      case 'lines-vertical':
+                                        return 'repeating-linear-gradient(90deg, transparent, transparent 10px, rgba(0,0,0,0.1) 10px, rgba(0,0,0,0.1) 11px)';
+                                      case 'zigzag':
+                                        return 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.1) 10px, rgba(0,0,0,0.1) 20px)';
+                                      default:
+                                        return 'none';
+                                    }
+                                  })(),
+                                  backgroundBlendMode: 'overlay'
+                                })
                               }}
                             />
 
@@ -1251,7 +1286,27 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                       <h1
                                         className={`${layoutClasses.titleSize} font-bold ${layoutClasses.titleAlign} mb-4 outline-none cursor-pointer p-2 rounded transition-colors`}
                                         style={{
-                                          color: tempSlide.backgroundImage ? '#FFFFFF' : theme.primary,
+                                          color: (() => {
+                                            if (tempSlide.backgroundImage) {
+                                              return '#FFFFFF'; // 배경 이미지가 있으면 흰색
+                                            } else if (tempSlide.backgroundType === 'color' && tempSlide.backgroundColor) {
+                                              // 배경색에 따라 대비가 좋은 색상 선택
+                                              const bg = tempSlide.backgroundColor;
+                                              if (bg.includes('gradient')) {
+                                                return '#FFFFFF'; // 그라데이션은 보통 어두우므로 흰색
+                                              } else {
+                                                // 단색 배경의 밝기 계산
+                                                const hex = bg.replace('#', '');
+                                                const r = parseInt(hex.substr(0, 2), 16);
+                                                const g = parseInt(hex.substr(2, 2), 16);
+                                                const b = parseInt(hex.substr(4, 2), 16);
+                                                const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+                                                return brightness > 128 ? '#000000' : '#FFFFFF';
+                                              }
+                                            } else {
+                                              return theme.primary; // 기본 테마 색상
+                                            }
+                                          })(),
                                           textShadow: tempSlide.backgroundImage ? '2px 2px 4px rgba(0,0,0,0.8)' : (themeFont?.effects?.textShadow || 'none'),
                                           fontFamily: themeFont?.fontFamily || 'inherit',
                                           fontWeight: themeFont?.effects?.fontWeight || 'bold',
@@ -1326,7 +1381,27 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                                         <div
                                           className={`${layoutClasses.contentSize} ${layoutClasses.contentAlign} outline-none cursor-pointer p-2 rounded transition-colors`}
                                           style={{
-                                            color: tempSlide.backgroundImage ? '#F0F0F0' : theme.secondary,
+                                            color: (() => {
+                                              if (tempSlide.backgroundImage) {
+                                                return '#F0F0F0'; // 배경 이미지가 있으면 밝은 회색
+                                              } else if (tempSlide.backgroundType === 'color' && tempSlide.backgroundColor) {
+                                                // 배경색에 따라 대비가 좋은 색상 선택
+                                                const bg = tempSlide.backgroundColor;
+                                                if (bg.includes('gradient')) {
+                                                  return '#F0F0F0'; // 그라데이션은 보통 어두우므로 밝은 색
+                                                } else {
+                                                  // 단색 배경의 밝기 계산
+                                                  const hex = bg.replace('#', '');
+                                                  const r = parseInt(hex.substr(0, 2), 16);
+                                                  const g = parseInt(hex.substr(2, 2), 16);
+                                                  const b = parseInt(hex.substr(4, 2), 16);
+                                                  const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+                                                  return brightness > 128 ? '#333333' : '#F0F0F0';
+                                                }
+                                              } else {
+                                                return theme.secondary; // 기본 테마 색상
+                                              }
+                                            })(),
                                             textShadow: tempSlide.backgroundImage ? '1px 1px 2px rgba(0,0,0,0.7)' : (themeFont?.effects?.textShadow || 'none'),
                                             fontFamily: themeFont?.fontFamily || 'inherit',
                                             fontWeight: themeFont?.effects?.fontWeight || 'normal',
@@ -1608,6 +1683,14 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
                             width={aspectRatio.width}
                             height={aspectRatio.height}
                             backgroundType={tempSlide.backgroundType || 'image'}
+                            currentPattern={tempSlide.backgroundPattern || 'none'}
+                            previousSlideBackgroundSeed={(() => {
+                              const currentIndex = slides.findIndex(s => s.id === activeSlideId);
+                              if (currentIndex > 0) {
+                                return slides[currentIndex - 1].backgroundSeed;
+                              }
+                              return undefined;
+                            })()}
                             onSeedChange={handleBackgroundSeedChange}
                             onBlurChange={handleBackgroundBlurChange}
                             onGrayscaleChange={handleBackgroundGrayscaleChange}
@@ -1981,6 +2064,23 @@ export const SlidesContainer: React.FC<SlidesContainerProps> = ({
             )}
           </React.Fragment>
         ))}
+        
+        {/* 최하단 슬라이드 추가 버튼 */}
+        {slides.length > 0 && (
+          <div className="flex justify-center py-6">
+            <button
+              onClick={() => onAddSlide()}
+              className={`group flex items-center gap-3 px-6 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${
+                isDarkMode 
+                  ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-green-500/25' 
+                  : 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg hover:shadow-green-500/25'
+              } hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2`}
+            >
+              <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-200" />
+              {t.addSlide}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* 숨겨진 파일 입력 */}
