@@ -12,8 +12,8 @@ export const callGeminiAPI = async (prompt: string, apiKey: string): Promise<str
   if (!apiKey) {
     throw new Error('Gemini API key is required');
   }
-// 제미나이 2.0 플래시
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`, {
+
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
