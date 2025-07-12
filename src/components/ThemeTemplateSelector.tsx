@@ -1,5 +1,6 @@
 import React from 'react';
 import { Layout, LayoutGrid } from 'lucide-react';
+import { TRANSLATIONS } from '../constants';
 
 export interface ThemeTemplateOption {
   id: string;
@@ -12,13 +13,15 @@ export interface ThemeTemplateOption {
 interface ThemeTemplateSelectorProps {
   currentTemplate: ThemeTemplateOption;
   onTemplateChange: (template: ThemeTemplateOption) => void;
+  language: 'ko' | 'en';
+  isDarkMode?: boolean;
 }
 
 const THEME_TEMPLATE_OPTIONS: ThemeTemplateOption[] = [
   {
     id: 'mixed-auto',
-    name: '자동 혼합',
-    description: '슬라이드마다 다양한 레이아웃 자동 적용',
+    name: 'mixedAuto',
+    description: 'mixedAutoDesc',
     defaultLayout: 'title-top-content-bottom',
     icon: (
       <div className="w-8 h-6 border border-gray-400 rounded flex flex-col">
@@ -32,8 +35,8 @@ const THEME_TEMPLATE_OPTIONS: ThemeTemplateOption[] = [
   },
   {
     id: 'presentation-formal',
-    name: '정식 발표',
-    description: '제목과 내용이 명확히 구분된 정형화된 레이아웃',
+    name: 'presentationFormal',
+    description: 'presentationFormalDesc',
     defaultLayout: 'title-top-content-bottom',
     icon: (
       <div className="w-8 h-6 border border-gray-400 rounded flex flex-col">
@@ -44,8 +47,8 @@ const THEME_TEMPLATE_OPTIONS: ThemeTemplateOption[] = [
   },
   {
     id: 'side-by-side',
-    name: '좌우 분할',
-    description: '제목과 내용을 좌우로 나누어 배치',
+    name: 'sideBySide',
+    description: 'sideBySideDesc',
     defaultLayout: 'title-left-content-right',
     icon: (
       <div className="w-8 h-6 border border-gray-400 rounded flex">
@@ -56,8 +59,8 @@ const THEME_TEMPLATE_OPTIONS: ThemeTemplateOption[] = [
   },
   {
     id: 'title-focus',
-    name: '제목 중심',
-    description: '제목을 강조하는 임팩트 있는 레이아웃',
+    name: 'titleFocus',
+    description: 'titleFocusDesc',
     defaultLayout: 'title-only',
     icon: (
       <div className="w-8 h-6 border border-gray-400 rounded flex items-center justify-center">
@@ -67,8 +70,8 @@ const THEME_TEMPLATE_OPTIONS: ThemeTemplateOption[] = [
   },
   {
     id: 'content-heavy',
-    name: '내용 중심',
-    description: '많은 내용을 효과적으로 표시하는 레이아웃',
+    name: 'contentHeavy',
+    description: 'contentHeavyDesc',
     defaultLayout: 'title-small-top-left',
     icon: (
       <div className="w-8 h-6 border border-gray-400 rounded flex flex-col">
@@ -79,8 +82,8 @@ const THEME_TEMPLATE_OPTIONS: ThemeTemplateOption[] = [
   },
   {
     id: 'creative-asymmetric',
-    name: '크리에이티브',
-    description: '창의적이고 비대칭적인 레이아웃',
+    name: 'creativeAsymmetric',
+    description: 'creativeAsymmetricDesc',
     defaultLayout: 'title-right-content-left',
     icon: (
       <div className="w-8 h-6 border border-gray-400 rounded flex">
@@ -94,12 +97,16 @@ const THEME_TEMPLATE_OPTIONS: ThemeTemplateOption[] = [
 export const ThemeTemplateSelector: React.FC<ThemeTemplateSelectorProps> = ({
   currentTemplate,
   onTemplateChange,
+  language,
+  isDarkMode = false,
 }) => {
+  const t = TRANSLATIONS[language];
+
   return (
-    <div className="bg-white rounded-lg border p-3 space-y-3">
-      <h4 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
-        <LayoutGrid className="w-4 h-4" />
-        템플릿 스타일
+    <div className={`${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-200'} rounded-lg border p-3 space-y-3 transition-colors`}>
+      <h4 className={`text-sm font-semibold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'} flex items-center gap-2`}>
+        <LayoutGrid className={`w-4 h-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
+        {t.templateStyle}
       </h4>
       
       <div className="grid grid-cols-2 gap-2">
@@ -110,14 +117,16 @@ export const ThemeTemplateSelector: React.FC<ThemeTemplateSelectorProps> = ({
             className={`p-2 rounded border-2 transition-all duration-200 text-left ${
               currentTemplate.id === template.id
                 ? 'border-blue-500 bg-blue-50'
-                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                : isDarkMode
+                  ? 'border-gray-600 hover:border-gray-500 hover:bg-gray-600'
+                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
             }`}
-            title={template.description}
+            title={t[template.description as keyof typeof t]}
           >
             <div className="flex items-center gap-2 mb-1">
               {template.icon}
-              <div className="text-xs font-medium text-gray-800 truncate">
-                {template.name}
+              <div className={`text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-800'} truncate`}>
+                {t[template.name as keyof typeof t]}
               </div>
             </div>
           </button>
@@ -125,9 +134,9 @@ export const ThemeTemplateSelector: React.FC<ThemeTemplateSelectorProps> = ({
       </div>
       
       {/* 현재 선택된 템플릿 정보 */}
-      <div className="text-xs text-gray-500 p-2 bg-gray-50 rounded">
-        <div>선택됨: <span className="font-medium">{currentTemplate.name}</span></div>
-        <div className="text-gray-400 mt-1">{currentTemplate.description}</div>
+      <div className={`text-xs ${isDarkMode ? 'text-gray-400 bg-gray-600' : 'text-gray-500 bg-gray-50'} p-2 rounded transition-colors`}>
+        <div>{t.selected}: <span className="font-medium">{t[currentTemplate.name as keyof typeof t]}</span></div>
+        <div className={`${isDarkMode ? 'text-gray-500' : 'text-gray-400'} mt-1`}>{t[currentTemplate.description as keyof typeof t]}</div>
       </div>
     </div>
   );

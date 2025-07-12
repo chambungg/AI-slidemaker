@@ -1,5 +1,6 @@
 import React from 'react';
 import { Square, Minus, CornerUpLeft, Palette } from 'lucide-react';
+import { TRANSLATIONS } from '../constants';
 
 export interface SlideBorderStyle {
   id: string;
@@ -13,12 +14,14 @@ export interface SlideBorderStyle {
 export interface SlideBorderStyleSelectorProps {
   selectedStyle: SlideBorderStyle;
   onStyleChange: (style: SlideBorderStyle) => void;
+  language: 'ko' | 'en';
+  isDarkMode?: boolean;
 }
 
 const BORDER_STYLES: SlideBorderStyle[] = [
   {
     id: 'none',
-    name: '테두리 없음',
+    name: 'noBorder',
     borderWidth: 0,
     borderStyle: 'none',
     borderRadius: 0,
@@ -26,7 +29,7 @@ const BORDER_STYLES: SlideBorderStyle[] = [
   },
   {
     id: 'clean-minimal',
-    name: '깔끔한 선',
+    name: 'cleanLine',
     borderWidth: 1,
     borderStyle: 'solid',
     borderRadius: 8,
@@ -34,7 +37,7 @@ const BORDER_STYLES: SlideBorderStyle[] = [
   },
   {
     id: 'modern-card',
-    name: '모던 카드',
+    name: 'modernCard',
     borderWidth: 0,
     borderStyle: 'none',
     borderRadius: 16,
@@ -42,7 +45,7 @@ const BORDER_STYLES: SlideBorderStyle[] = [
   },
   {
     id: 'bold-frame',
-    name: '굵은 프레임',
+    name: 'boldFrame',
     borderWidth: 3,
     borderStyle: 'solid',
     borderRadius: 12,
@@ -50,7 +53,7 @@ const BORDER_STYLES: SlideBorderStyle[] = [
   },
   {
     id: 'dashed-creative',
-    name: '점선 창의적',
+    name: 'dashedCreative',
     borderWidth: 2,
     borderStyle: 'dashed',
     borderRadius: 8,
@@ -58,7 +61,7 @@ const BORDER_STYLES: SlideBorderStyle[] = [
   },
   {
     id: 'dotted-playful',
-    name: '점점 재미있는',
+    name: 'dottedPlayful',
     borderWidth: 2,
     borderStyle: 'dotted',
     borderRadius: 16,
@@ -66,7 +69,7 @@ const BORDER_STYLES: SlideBorderStyle[] = [
   },
   {
     id: 'double-professional',
-    name: '이중선 전문적',
+    name: 'doubleProfessional',
     borderWidth: 3,
     borderStyle: 'double',
     borderRadius: 4,
@@ -74,7 +77,7 @@ const BORDER_STYLES: SlideBorderStyle[] = [
   },
   {
     id: 'glow-effect',
-    name: '글로우 효과',
+    name: 'glowEffect',
     borderWidth: 2,
     borderStyle: 'solid',
     borderRadius: 20,
@@ -85,12 +88,16 @@ const BORDER_STYLES: SlideBorderStyle[] = [
 export const SlideBorderStyleSelector: React.FC<SlideBorderStyleSelectorProps> = ({
   selectedStyle,
   onStyleChange,
+  language,
+  isDarkMode = false,
 }) => {
+  const t = TRANSLATIONS[language];
+
   return (
-    <div className="bg-white rounded-lg border p-3 space-y-3">
+    <div className={`${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-200'} rounded-lg border p-3 space-y-3 transition-colors`}>
       <div className="flex items-center gap-2">
-        <Square className="w-4 h-4 text-gray-600" />
-        <h4 className="text-sm font-semibold text-gray-800">테두리 스타일</h4>
+        <Square className={`w-4 h-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
+        <h4 className={`text-sm font-semibold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>{t.borderStyle}</h4>
       </div>
       
       <div className="grid grid-cols-2 gap-2">
@@ -102,13 +109,15 @@ export const SlideBorderStyleSelector: React.FC<SlideBorderStyleSelectorProps> =
               relative p-3 rounded-lg border-2 transition-all text-left
               ${selectedStyle.id === style.id 
                 ? 'border-blue-500 bg-blue-50 shadow-md' 
-                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                : isDarkMode
+                  ? 'border-gray-600 hover:border-gray-500 hover:bg-gray-600'
+                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
               }
             `}
           >
             <div className="space-y-2">
-              <div className="text-xs font-medium text-gray-700">
-                {style.name}
+              <div className={`text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                {t[style.name as keyof typeof t]}
               </div>
               
               {/* 스타일 미리보기 */}
